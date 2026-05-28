@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四级单词天天背</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f5;--card:#fff;--primary:#4f6ef7;--primary-dark:#3b54d4;
+  --success:#22c55e;--danger:#ef4444;--warning:#f59e0b;--text:#1e293b;
+  --text2:#64748b;--border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,.08);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.1);--radius:12px;
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  display:flex;justify-content:center;padding:16px;
+}
+.app{width:100%;max-width:600px;display:flex;flex-direction:column;gap:14px;padding-bottom:20px}
+
+header{text-align:center;padding:6px 0}
+header h1{font-size:1.5rem;font-weight:700;color:var(--primary)}
+header p{color:var(--text2);font-size:.8rem;margin-top:2px}
+
+/* Streak badge */
+.streak-badge{
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);
+}
+.streak-item{text-align:center}
+.streak-item .val{font-size:1.3rem;font-weight:700}
+.streak-item .lbl{font-size:.7rem;color:var(--text2)}
+.streak-item.fire .val{color:#f59e0b}
+.streak-item.today .val{color:var(--primary)}
+.streak-divider{width:1px;height:30px;background:var(--border)}
+
+/* Tabs */
+.tabs{display:flex;background:var(--card);border-radius:var(--radius);padding:3px;box-shadow:var(--shadow)}
+.tab{
+  flex:1;padding:9px 4px;text-align:center;border:none;background:transparent;
+  cursor:pointer;border-radius:9pxx;font-size:.8rem;font-weight:500;
+  color:var(--text2);transition:all .2s;
+}
+.tab.active{background:var(--primary);color:#fff;box-shadow:var(--shadow)}
+.tab:hover:not(.active){background:#f1f5f9}
+
+/* Daily progress */
+.daily-progress{
+  background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:14px;
+}
+.progress-ring{
+  flex-shrink:0;width:60px;height:60px;border-radius:50%;
+  background:conic-gradient(var(--primary) var(--progress,0%), #e2e8f0 0);
+  display:flex;align-items:center;justify-content:center;
+}
+.progress-ring::before{
+  content:'';width:44px;height:44px;border-radius:50%;background:#fff;
+}
+.progress-inner{
+  position:absolute;font-size:.9rem;font-weight:700;color:var(--primary);
+}
+.progress-info{flex:1}
+.progress-info .title{font-weight:600;font-size:.9rem}
+.progress-info .sub{color:var(--text2);font-size:.75rem;margin-top:2px}
+.btn-checkin{
+  padding:10px 18px;background:var(--success);color:#fff;border:none;
+  border-radius:20px;font-weight:600;font-size:.85rem;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.btn-checkin:hover{background:#16a34a}
+.btn-checkin:active{transform:scale(.96)}
+.btn-checkin.done{background:#cbd5e1;cursor:default}
+
+/* Panel */
+.panel{display:none;flex-direction:column;gap:14px}
+.panel.active{display:flex}
+
+/* Flashcards */
+.flashcard-container{perspective:1000px;height:260px}
+.flashcard{
+  width:100%;height:100%;position:relative;transition:transform .5s;
+  transform-style:preserve-3d;cursor:pointer;
+}
+.flashcard.flipped{transform:rotateY(180deg)}
+.flashcard-face{
+  position:absolute;inset:0;backface-visibility:hidden;
+  border-radius:var(--radius);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:24px;box-shadow:var(--shadow-lg);
+}
+.flashcard-front{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff}
+.flashcard-front .word{font-size:2.2rem;font-weight:700;letter-spacing:1px}
+.flashcard-front .phonetic{font-size:.9rem;opacity:.8;margin-top:6px}
+.flashcard-back{background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);color:#fff;transform:rotateY(180deg)}
+.flashcard-back .meaning{font-size:1.5rem;font-weight:600}
+.flashcard-back .example{font-size:.85rem;opacity:.9;margin-top:14px;text-align:center;line-height:1.5}
+.card-hint{text-align:center;color:var(--text2);font-size:.75rem}
+.card-progress{text-align:center;color:var(--text2);font-size:.8rem}
+.card-progress span{color:var(--primary);font-weight:700}
+
+/* Video section */
+.video-toggle-btn{
+  display:block;margin:0 auto;padding:6px 16px;background:#fb923c;color:#fff;
+  border:none;border-radius:16px;font-size:.78rem;font-weight:600;cursor:pointer;
+  transition:all .15s;
+}
+.video-toggle-btn:hover{background:#f97316}
+.video-toggle-btn:active{transform:scale(.96)}
+.video-panel{
+  display:none;background:var(--card);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.video-panel.show{display:block}
+.video-panel iframe{width:100%;height:200px;border:none}
+.video-search-row{display:flex;gap:6px;padding:8px 10px}
+.video-search-row button{
+  flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:14px;
+  background:var(--card);cursor:pointer;font-size:.75rem;color:var(--text2);
+  transition:all .15s;white-space:nowrap;
+}
+.video-search-row button:hover{border-color:var(--primary);color:var(--primary);background:#eff6ff}
+.video-search-row button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.card-actions{display:flex;gap:8px}
+.card-actions button{
+  flex:1;padding:11px;border:none;border-radius:10px;font-size:.85rem;
+  font-weight:600;cursor:pointer;transition:all .15s;
+}
+.card-actions button:active{transform:scale(.96)}
+.btn-forgot{background:#fef2f2;color:var(--danger)}
+.btn-forgot:hover{background:#fee2e2}
+.btn-hard{background:#fffbeb;color:#d97706}
+.btn-hard:hover{background:#fef3c7}
+.btn-good{background:#f0fdf4;color:#16a34a}
+.btn-good:hover{background:#dcfce7}
+.btn-easy{background:#eff6ff;color:#2563eb}
+.btn-easy:hover{background:#dbeafe}
+
+/* Quiz */
+.quiz-type-selector{display:flex;gap:8px}
+.quiz-type-btn{
+  flex:1;padding:8px;border:2px solid var(--border);border-radius:8px;
+  background:var(--card);cursor:pointer;font-size:.78rem;font-weight:500;
+  text-align:center;transition:all .15s;
+}
+.quiz-type-btn.active{border-color:var(--primary);background:#eff6ff;color:var(--primary)}
+.quiz-type-btn:hover:not(.active){border-color:#cbd5e1}
+
+.quiz-word{text-align:center;font-size:1.8rem;font-weight:700;color:var(--primary);padding:16px}
+.quiz-options{display:flex;flex-direction:column;gap:8px}
+.quiz-option{
+  padding:13px 16px;background:var(--card);border:2px solid var(--border);
+  border-radius:10px;cursor:pointer;font-size:.95rem;text-align:left;
+  transition:all .15s;
+}
+.quiz-option:hover{border-color:var(--primary);background:#eff6ff}
+.quiz-option.correct{border-color:var(--success);background:#f0fdf4}
+.quiz-option.wrong{border-color:var(--danger);background:#fef2f2}
+.quiz-option:disabled{pointer-events:none}
+.quiz-input{
+  padding:12px 16px;border:2px solid var(--border);border-radius:10px;
+  font-size:1.1rem;text-align:center;outline:none;width:100%;
+}
+.quiz-input:focus{border-color:var(--primary)}
+.quiz-result{text-align:center;font-weight:600;font-size:1rem;min-height:26px}
+.quiz-next{
+  padding:11px 28px;background:var(--primary);color:#fff;border:none;
+  border-radius:10px;font-size:.95rem;font-weight:600;cursor:pointer;
+  align-self:center;transition:all .15s;
+}
+.quiz-next:hover{background:var(--primary-dark)}
+.quiz-next:active{transform:scale(.96)}
+.quiz-score{text-align:center;font-size:.85rem;color:var(--text2)}
+
+/* Word list */
+.word-list-header{display:flex;gap:8px}
+.word-list-header input{
+  flex:1;padding:9px 12px;border:2px solid var(--border);border-radius:10px;
+  font-size:.85rem;outline:none;transition:border-color .2s;
+}
+.word-list-header input:focus{border-color:var(--primary)}
+.word-list-header button,.word-list-header select{
+  padding:9px 14px;background:var(--primary);color:#fff;border:none;
+  border-radius:10px;font-weight:600;cursor:pointer;font-size:.85rem;
+}
+.word-list-header select{background:var(--card);color:var(--text);border:2px solid var(--border)}
+
+.word-list{list-style:none}
+.word-item{
+  display:flex;align-items:center;gap:10px;padding:11px 12px;
+  background:var(--card);border-radius:10px;margin-bottom:6px;
+  box-shadow:var(--shadow);transition:transform .1s;
+}
+.word-item:hover{transform:translateX(3px)}
+.word-item .eng{font-weight:600;min-width:90px;font-size:.9rem}
+.word-item .chn{color:var(--text2);flex:1;font-size:.82rem}
+.word-item .level{font-size:.68rem;padding:2px 7px;border-radius:20px;font-weight:600}
+.level-new{background:#f1f5f9;color:#64748b}
+.level-learning{background:#fef3c7;color:#b45309}
+.level-mastered{background:#dcfce7;color:#15803d}
+.word-item .del-btn{background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:1.1rem}
+.word-item .del-btn:hover{color:var(--danger)}
+.empty-state{text-align:center;color:var(--text2);padding:40px 20px}
+
+/* Checkin tab */
+.calendar-header{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.calendar-header button{
+  background:none;border:none;font-size:1.2rem;cursor:pointer;
+  color:var(--primary);padding:4px 8px;
+}
+.calendar-header .month-label{font-weight:600;font-size:1rem}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.calendar-grid .day-label{font-size:.7rem;color:var(--text2);padding:4px 0}
+.calendar-grid .day{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;font-size:.8rem;cursor:default;
+}
+.calendar-grid .day.checked{background:var(--success);color:#fff;font-weight:600}
+.calendar-grid .day.today{border:2px solid var(--primary);font-weight:600}
+.calendar-grid .day.other{color:#cbd5e1}
+.calendar-grid .day.future{color:var(--text2)}
+
+.checkin-stats{display:flex;gap:8px}
+.checkin-stat{
+  flex:1;background:var(--card);border-radius:var(--radius);padding:12px;
+  text-align:center;box-shadow:var(--shadow);
+}
+.checkin-stat .n{font-size:1.3rem;font-weight:700;color:var(--primary)}
+.checkin-stat .l{font-size:.7rem;color:var(--text2)}
+
+/* Add form */
+.add-form{display:flex;flex-direction:column;gap:7px}
+.add-form input{
+  padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:.85rem;
+}
+.add-form input:focus{border-color:var(--primary);outline:none}
+.add-form .btns{display:flex;gap:8px}
+.add-form .btns button{flex:1;padding:8px;border:none;border-radius:8px;font-weight:600;cursor:pointer}
+.add-form .btns .btn-confirm{background:var(--success);color:#fff}
+.add-form .btns .btn-cancel{background:#e2e8f0;color:var(--text)}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1>四级单词天天背</h1>
+  <p>每天30词 · 轻松过四级</p>
+</header>
+
+<div class="streak-badge">
+  <div class="streak-item fire">
+    <div class="val" id="streakDays">0</div>
+    <div class="lbl">🔥 连续打卡</div>
+  </div>
+  <div class="streak-divider"></div>
+  <div class="streak-item today">
+    <div class="val" id="todayCount">0</div>
+    <div class="lbl">📖 今日已学</div>
+  </div>
+  <div class="streak-divider"></div>
+  <div class="streak-item">
+    <div class="val" id="totalDays">0</div>
+    <div class="lbl">📅 累计天数</div>
+  </div>
+</div>
+
+<div class="daily-progress" id="dailyProgress">
+  <div style="position:relative;display:inline-flex">
+    <div class="progress-ring" id="progressRing" style="--progress:0%"></div>
+    <div class="progress-inner" id="progressText">0/30</div>
+  </div>
+  <div class="progress-info">
+    <div class="title">今日目标：30 个单词</div>
+    <div class="sub" id="progressSub">还没开始，加油！</div>
+  </div>
+  <button class="btn-checkin" id="btnCheckin" onclick="doCheckin()">✅ 打卡</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-panel="study">📖 背单词</button>
+  <button class="tab" data-panel="quiz">✏️ 测验</button>
+  <button class="tab" data-panel="list">📋 单词表</button>
+  <button class="tab" data-panel="checkin">📅 打卡</button>
+</div>
+
+<!-- Study Panel -->
+<div class="panel active" id="panel-study">
+  <div class="flashcard-container">
+    <div class="flashcard" id="flashcard" onclick="flipCard()">
+      <div class="flashcard-face flashcard-front">
+        <div class="word" id="cardWord"></div>
+        <div class="phonetic" id="cardPhonetic"></div>
+      </div>
+      <div class="flashcard-face flashcard-back">
+        <div class="meaning" id="cardMeaning"></div>
+        <div class="example" id="cardExample"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-hint">👆 点击卡片翻转 · 空格键翻转 · ← → 切换</div>
+  <div class="card-progress">今日进度：<span id="cardTodayCount">0</span> / 30</div>
+  <div class="card-actions">
+    <button class="btn-forgot" onclick="rateWord(0)">😰 忘了</button>
+    <button class="btn-hard" onclick="rateWord(1)">🤔 困难</button>
+    <button class="btn-good" onclick="rateWord(2)">👍 知道</button>
+    <button class="btn-easy" onclick="rateWord(3)">🚀 简单</button>
+  </div>
+  <button class="video-toggle-btn" onclick="toggleVideo()">📺 B站学单词</button>
+  <div class="video-panel" id="videoPanel">
+    <div class="video-search-row">
+      <button class="active" onclick="switchVideo('context',this)">📖 语境记词</button>
+      <button onclick="switchVideo('core',this)">🎯 核心词速记</button>
+      <button onclick="searchB站()">🔍 搜当前词</button>
+    </div>
+    <div id="videoPlayer"><iframe src="" allowfullscreen></iframe></div>
+  </div>
+</div>
+
+<!-- Quiz Panel -->
+<div class="panel" id="panel-quiz">
+  <div class="quiz-type-selector">
+    <button class="quiz-type-btn active" data-qtype="choice">🔤 英译中</button>
+    <button class="quiz-type-btn" data-qtype="reverse">🀄 中译英</button>
+    <button class="quiz-type-btn" data-qtype="spell">✍️ 拼写</button>
+  </div>
+  <div class="quiz-word" id="quizWord"></div>
+  <div class="quiz-options" id="quizOptions"></div>
+  <input class="quiz-input" id="quizInput" style="display:none" placeholder="输入英文单词..." autocomplete="off">
+  <div class="quiz-result" id="quizResult"></div>
+  <div class="quiz-score">得分：<span id="quizScore">0</span> / <span id="quizTotal">0</span></div>
+  <button class="quiz-next" id="quizNext" style="display:none" onclick="nextQuiz()">下一题 →</button>
+</div>
+
+<!-- Word List Panel -->
+<div class="panel" id="panel-list">
+  <div class="word-list-header">
+    <input type="text" id="searchInput" placeholder="🔍 搜索单词..." oninput="renderWordList()">
+    <select id="levelFilter" onchange="renderWordList()">
+      <option value="all">全部</option>
+      <option value="new">新词</option>
+      <option value="learning">学习中</option>
+      <option value="mastered">已掌握</option>
+    </select>
+    <button onclick="showAddForm()">+ 添加</button>
+  </div>
+  <div class="add-form" id="addForm" style="display:none">
+    <input type="text" id="addEnglish" placeholder="英文单词">
+    <input type="text" id="addChinese" placeholder="中文释义">
+    <input type="text" id="addPhonetic" placeholder="音标（可选）">
+    <input type="text" id="addExample" placeholder="例句（可选）">
+    <div class="btns">
+      <button class="btn-confirm" onclick="addWord()">确认添加</button>
+      <button class="btn-cancel" onclick="hideAddForm()">取消</button>
+    </div>
+  </div>
+  <ul class="word-list" id="wordList"></ul>
+</div>
+
+<!-- Checkin Panel -->
+<div class="panel" id="panel-checkin">
+  <div class="calendar-header">
+    <button onclick="changeMonth(-1)">◀</button>
+    <span class="month-label" id="monthLabel"></span>
+    <button onclick="changeMonth(1)">▶</button>
+  </div>
+  <div class="calendar-grid" id="calendarGrid"></div>
+  <div class="checkin-stats">
+    <div class="checkin-stat">
+      <div class="n" id="csTotal">0</div><div class="l">累计打卡</div>
+    </div>
+    <div class="checkin-stat">
+      <div class="n" id="csStreak">0</div><div class="l">最长连续</div>
+    </div>
+    <div class="checkin-stat">
+      <div class="n" id="csMonth">0</div><div class="l">本月打卡</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ===== CET-4 核心词汇表 (500词) =====
+const CET4 = [
+  ['abandon','抛弃；放弃','/əˈbændən/','He abandoned his plan.'],
+  ['ability','能力；才能','/əˈbɪləti/','She has great ability.'],
+  ['abroad','在国外；到国外','/əˈbrɔːd/','He went abroad last year.'],
+  ['absence','缺席；不在','/ˈæbsəns/','His absence was noted.'],
+  ['absolute','绝对的；完全的','/ˈæbsəluːt/','That is absolute nonsense.'],
+  ['absorb','吸收；吸引','/əbˈzɔːrb/','Plants absorb water.'],
+  ['abstract','抽象的；摘要','/ˈæbstrækt/','The idea is too abstract.'],
+  ['abundant','丰富的；充裕的','/əˈbʌndənt/','Food is abundant here.'],
+  ['abuse','滥用；虐待','/əˈbjuːz/','Drug abuse is harmful.'],
+  ['academic','学术的；学院的','/ˌækəˈdemɪk/','Academic performance matters.'],
+  ['accelerate','加速；促进','/əkˈseləreɪt/','The car accelerated quickly.'],
+  ['accept','接受；承认','/əkˈsept/','I accept your offer.'],
+  ['access','进入；通道；访问','/ˈækses/','I need access to the data.'],
+  ['accompany','陪伴；伴随','/əˈkʌmpəni/','May I accompany you?'],
+  ['accomplish','完成；实现','/əˈkɑːmplɪʃ/','We accomplished our goal.'],
+  ['account','账户；说明；占...比例','/əˈkaʊnt/','Open a bank account.'],
+  ['accurate','准确的；精确的','/ˈækjərət/','The data is accurate.'],
+  ['accuse','指控；指责','/əˈkjuːz/','He accused me of lying.'],
+  ['achieve','实现；达到','/əˈtʃiːv/','She achieved her dream.'],
+  ['acknowledge','承认；确认','/əkˈnɒlɪdʒ/','He acknowledged his mistake.'],
+  ['acquire','获得；学到','/əˈkwaɪər/','Acquire new skills.'],
+  ['adapt','适应；改编','/əˈdæpt/','Adapt to the new environment.'],
+  ['adequate','足够的；适当的','/ˈædɪkwət/','The supply is adequate.'],
+  ['adjust','调整；适应','/əˈdʒʌst/','Adjust the volume please.'],
+  ['admire','钦佩；赞赏','/ədˈmaɪər/','I admire your courage.'],
+  ['admit','承认；准许进入','/ədˈmɪt/','He admitted his fault.'],
+  ['adopt','采纳；收养','/əˈdɒpt/','Adopt a new method.'],
+  ['advance','前进；进步；预付','/ədˈvɑːns/','Technology advances rapidly.'],
+  ['advantage','优势；有利条件','/ədˈvɑːntɪdʒ/','This has many advantages.'],
+  ['advertise','做广告；宣传','/ˈædvərtaɪz/','Advertise the product.'],
+  ['affair','事务；事件','/əˈfeər/','Its a private affair.'],
+  ['affect','影响；打动','/əˈfekt/','The weather affects mood.'],
+  ['afford','负担得起；提供','/əˈfɔːrd/','I cant afford it.'],
+  ['aggressive','侵略的；好斗的','/əˈɡresɪv/','Aggressive behavior is bad.'],
+  ['agree','同意；赞成','/əˈɡriː/','I agree with you.'],
+  ['aid','援助；帮助','/eɪd/','Provide medical aid.'],
+  ['aim','目标；瞄准','/eɪm/','What is your aim?'],
+  ['alarm','警报；使惊恐','/əˈlɑːrm/','The alarm went off.'],
+  ['alert','警觉的；使警惕','/əˈlɜːrt/','Stay alert at all times.'],
+  ['allow','允许；准许','/əˈlaʊ/','Allow me to explain.'],
+  ['alter','改变；修改','/ˈɔːltər/','Alter the plan slightly.'],
+  ['amaze','使吃惊；使惊奇','/əˈmeɪz/','You never cease to amaze me.'],
+  ['ambition','雄心；野心','/æmˈbɪʃn/','She has great ambition.'],
+  ['amount','数量；总计','/əˈmaʊnt/','A large amount of money.'],
+  ['analyze','分析；解析','/ˈænəlaɪz/','Analyze the data carefully.'],
+  ['announce','宣布；通告','/əˈnaʊns/','They announced the result.'],
+  ['annual','年度的；一年生的','/ˈænjuəl/','The annual meeting is today.'],
+  ['anxiety','焦虑；忧虑','/æŋˈzaɪəti/','He suffers from anxiety.'],
+  ['apart','分离地；分开地','/əˈpɑːrt/','They live apart now.'],
+  ['apparent','明显的；表面的','/əˈpærənt/','Its apparent that he lied.'],
+  ['appeal','呼吁；吸引；上诉','/əˈpiːl/','The idea appeals to me.'],
+  ['apply','申请；应用','/əˈplaɪ/','Apply for the job.'],
+  ['appoint','任命；约定','/əˈpɔɪnt/','He was appointed manager.'],
+  ['appreciate','欣赏；感激；升值','/əˈpriːʃieɪt/','I appreciate your help.'],
+  ['approach','接近；方法','/əˈproʊtʃ/','A new approach to teaching.'],
+  ['appropriate','适当的；合适的','/əˈproʊpriət/','Appropriate behavior.'],
+  ['approve','批准；赞成','/əˈpruːv/','The plan was approved.'],
+  ['arise','出现；产生','/əˈraɪz/','Problems may arise.'],
+  ['arrange','安排；整理','/əˈreɪndʒ/','Arrange a meeting.'],
+  ['arrest','逮捕；阻止','/əˈrest/','He was arrested by police.'],
+  ['artificial','人造的；虚假的','/ˌɑːrtɪˈfɪʃl/','Artificial intelligence.'],
+  ['aspect','方面；层面','/ˈæspekt/','Consider every aspect.'],
+  ['assemble','集合；组装','/əˈsembl/','Assemble the furniture.'],
+  ['assess','评估；估价','/əˈses/','Assess the situation.'],
+  ['assign','分配；指派','/əˈsaɪn/','Assign tasks to everyone.'],
+  ['assist','帮助；援助','/əˈsɪst/','May I assist you?'],
+  ['associate','联系；关联','/əˈsoʊʃieɪt/','Associate one with another.'],
+  ['assume','假设；承担','/əˈsjuːm/','I assume you are right.'],
+  ['atmosphere','气氛；大气层','/ˈætməsfɪər/','A friendly atmosphere.'],
+  ['attach','附上；连接','/əˈtætʃ/','Please attach the file.'],
+  ['attempt','尝试；企图','/əˈtempt/','An attempt to escape.'],
+  ['attend','参加；出席','/əˈtend/','Attend the meeting.'],
+  ['attitude','态度；看法','/ˈætɪtjuːd/','A positive attitude.'],
+  ['attract','吸引；引起','/əˈtrækt/','Attract attention.'],
+  ['authority','权威；当局','/ɔːˈθɒrəti/','The local authority.'],
+  ['available','可用的；有空的','/əˈveɪləbl/','Is the room available?'],
+  ['average','平均的；普通的','/ˈævərɪdʒ/','The average score is 80.'],
+  ['avoid','避免；回避','/əˈvɔɪd/','Avoid making mistakes.'],
+  ['award','奖励；授予','/əˈwɔːrd/','She won an award.'],
+  ['aware','意识到的；知道的','/əˈweər/','Are you aware of the risk?'],
+  ['balance','平衡；余额','/ˈbæləns/','Keep a balance in life.'],
+  ['ban','禁止；禁令','/bæn/','Smoking is banned here.'],
+  ['barrier','障碍；屏障','/ˈbæriər/','Language barrier is a problem.'],
+  ['basic','基本的；基础的','/ˈbeɪsɪk/','Basic knowledge is important.'],
+  ['battle','战斗；斗争','/ˈbætl/','A battle against cancer.'],
+  ['bear','忍受；承担；熊','/beər/','I cant bear the pain.'],
+  ['behave','表现；行为','/bɪˈheɪv/','Behave yourself!'],
+  ['belief','信念；信仰','/bɪˈliːf/','A strong belief in God.'],
+  ['belong','属于；归属','/bɪˈlɒŋ/','This book belongs to me.'],
+  ['bend','弯曲；屈服','/bend/','Bend the wire carefully.'],
+  ['benefit','利益；好处；有益于','/ˈbenɪfɪt/','Exercise benefits health.'],
+  ['bitter','苦的；痛苦的','/ˈbɪtər/','A bitter experience.'],
+  ['blame','责备；归咎于','/bleɪm/','Dont blame me for this.'],
+  ['blank','空白的；空白处','/blæŋk/','Leave the space blank.'],
+  ['blow','吹；打击','/bloʊ/','The wind blows hard.'],
+  ['border','边界；边境','/ˈbɔːrdər/','Cross the border.'],
+  ['bore','使厌烦；钻(孔)','/bɔːr/','The lecture bored me.'],
+  ['bother','打扰；烦恼','/ˈbɒðər/','Dont bother him now.'],
+  ['bound','必定；跳跃；界限','/baʊnd/','You are bound to succeed.'],
+  ['brand','品牌；商标','/brænd/','A famous brand of shoes.'],
+  ['broad','宽的；广泛的','/brɔːd/','A broad range of topics.'],
+  ['budget','预算；经费','/ˈbʌdʒɪt/','Stay within the budget.'],
+  ['burden','负担；重担','/ˈbɜːrdn/','A heavy burden to carry.'],
+  ['calm','冷静的；平静的','/kɑːm/','Stay calm and think.'],
+  ['campaign','运动；战役','/kæmˈpeɪn/','An election campaign.'],
+  ['capable','有能力的','/ˈkeɪpəbl/','She is capable of doing it.'],
+  ['capacity','容量；能力','/kəˈpæsəti/','The room has a capacity of 100.'],
+  ['capture','捕获；俘获','/ˈkæptʃər/','Capture the moment.'],
+  ['career','职业；生涯','/kəˈrɪər/','Choose a career path.'],
+  ['category','类别；种类','/ˈkætəɡɔːri/','Different categories of books.'],
+  ['cause','原因；造成','/kɔːz/','What caused the accident?'],
+  ['celebrate','庆祝；赞美','/ˈselɪbreɪt/','Lets celebrate your success.'],
+  ['challenge','挑战；质疑','/ˈtʃælɪndʒ/','Face the challenge bravely.'],
+  ['character','性格；角色；字符','/ˈkærəktər/','He has a strong character.'],
+  ['charge','收费；充电；指控','/tʃɑːrdʒ/','How much do you charge?'],
+  ['claim','声称；要求；索赔','/kleɪm/','He claims to be innocent.'],
+  ['classify','分类；归类','/ˈklæsɪfaɪ/','Classify the documents.'],
+  ['climate','气候；风气','/ˈklaɪmət/','The climate is changing.'],
+  ['collapse','倒塌；崩溃','/kəˈlæps/','The building collapsed.'],
+  ['command','命令；指挥','/kəˈmænd/','He has good command of English.'],
+  ['comment','评论；意见','/ˈkɒment/','No comment on this issue.'],
+  ['commit','犯(罪)；承诺；提交','/kəˈmɪt/','Commit a crime.'],
+  ['communicate','交流；沟通','/kəˈmjuːnɪkeɪt/','Communicate effectively.'],
+  ['community','社区；团体','/kəˈmjuːnəti/','The local community.'],
+  ['companion','同伴；伙伴','/kəmˈpæniən/','A travel companion.'],
+  ['compare','比较；对比','/kəmˈpeər/','Compare the two products.'],
+  ['compete','竞争；比赛','/kəmˈpiːt/','Compete with each other.'],
+  ['complain','抱怨；投诉','/kəmˈpleɪn/','Stop complaining about everything.'],
+  ['complex','复杂的；综合的','/ˈkɒmpleks/','A complex problem.'],
+  ['concentrate','集中；专注','/ˈkɒnsntreɪt/','Concentrate on your work.'],
+  ['concept','概念；观念','/ˈkɒnsept/','A new concept of design.'],
+  ['concern','关心；担忧；涉及','/kənˈsɜːrn/','That doesnt concern you.'],
+  ['conclude','总结；推断','/kənˈkluːd/','What can we conclude from this?'],
+  ['conduct','行为；实施；指挥','/kənˈdʌkt/','Conduct an experiment.'],
+  ['confirm','确认；证实','/kənˈfɜːrm/','Please confirm your attendance.'],
+  ['conflict','冲突；矛盾','/ˈkɒnflɪkt/','Resolve the conflict peacefully.'],
+  ['connect','连接；联系','/kəˈnekt/','Connect to the internet.'],
+  ['conscious','有意识的；清醒的','/ˈkɒnʃəs/','Be conscious of your actions.'],
+  ['consequence','结果；后果','/ˈkɒnsɪkwəns/','Face the consequences.'],
+  ['conservative','保守的；守旧的','/kənˈsɜːrvətɪv/','A conservative estimate.'],
+  ['consider','考虑；认为','/kənˈsɪdər/','Consider all options first.'],
+  ['consist','由...组成；在于','/kənˈsɪst/','The team consists of five.'],
+  ['constant','持续的；不变的','/ˈkɒnstənt/','Constant effort brings success.'],
+  ['construct','建造；构建','/kənˈstrʌkt/','Construct a new bridge.'],
+  ['consume','消费；消耗','/kənˈsjuːm/','Consume less energy.'],
+  ['contact','联系；接触','/ˈkɒntækt/','Keep in contact with friends.'],
+  ['contain','包含；容纳','/kənˈteɪn/','This box contains books.'],
+  ['contemporary','当代的；同时代的','/kənˈtemprəri/','Contemporary art exhibition.'],
+  ['content','内容；满意的','/ˈkɒntent/','The content of the book.'],
+  ['contest','比赛；竞赛','/ˈkɒntest/','A singing contest.'],
+  ['contract','合同；收缩','/ˈkɒntrækt/','Sign a contract.'],
+  ['contrast','对比；对照','/ˈkɒntrɑːst/','In contrast to his brother.'],
+  ['contribute','贡献；捐献','/kənˈtrɪbjuːt/','Contribute to society.'],
+  ['convenient','方便的；便利的','/kənˈviːniənt/','A convenient location.'],
+  ['convince','使信服；说服','/kənˈvɪns/','Convince me with facts.'],
+  ['cooperate','合作；协作','/koʊˈɒpəreɪt/','Lets cooperate on this.'],
+  ['corporation','公司；企业','/ˌkɔːrpəˈreɪʃn/','A multinational corporation.'],
+  ['correspond','相符；通信','/ˌkɒrəˈspɒnd/','Correspond with each other.'],
+  ['count','数；计数；重要','/kaʊnt/','Every vote counts.'],
+  ['couple','一对；夫妻','/ˈkʌpl/','A young couple walked by.'],
+  ['courage','勇气；胆量','/ˈkʌrɪdʒ/','It takes courage to speak up.'],
+  ['crash','碰撞；崩溃','/kræʃ/','The computer crashed again.'],
+  ['create','创造；创建','/kriˈeɪt/','Create something beautiful.'],
+  ['crime','罪行；犯罪','/kraɪm/','Crime rate is dropping.'],
+  ['crisis','危机；紧要关头','/ˈkraɪsɪs/','An economic crisis.'],
+  ['critical','批评的；关键的','/ˈkrɪtɪkl/','A critical decision.'],
+  ['cultivate','培养；耕作','/ˈkʌltɪveɪt/','Cultivate good habits.'],
+  ['curious','好奇的；奇特的','/ˈkjʊəriəs/','Im curious about everything.'],
+  ['current','当前的；水流','/ˈkʌrənt/','Current events are important.'],
+  ['custom','习俗；定制的','/ˈkʌstəm/','Local customs are interesting.'],
+  ['damage','损害；破坏','/ˈdæmɪdʒ/','The storm caused great damage.'],
+  ['debate','辩论；争论','/dɪˈbeɪt/','A heated debate on politics.'],
+  ['debt','债务；负债','/det/','Pay off your debt first.'],
+  ['decade','十年','/ˈdekeɪd/','In the past decade.'],
+  ['decline','下降；拒绝；衰退','/dɪˈklaɪn/','Sales declined sharply.'],
+  ['decorate','装饰；装修','/ˈdekəreɪt/','Decorate the room for Christmas.'],
+  ['decrease','减少；降低','/dɪˈkriːs/','Decrease the amount of sugar.'],
+  ['define','定义；界定','/dɪˈfaɪn/','Define your goals clearly.'],
+  ['deliberate','故意的；深思熟虑的','/dɪˈlɪbərət/','A deliberate decision.'],
+  ['delicate','精致的；微妙的','/ˈdelɪkət/','A delicate situation.'],
+  ['deliver','递送；发表(演讲)','/dɪˈlɪvər/','Deliver a package to you.'],
+  ['demand','要求；需求','/dɪˈmænd/','Supply and demand rule the market.'],
+  ['demonstrate','展示；证明；示威','/ˈdemənstreɪt/','Demonstrate how it works.'],
+  ['depend','依赖；取决于','/dɪˈpend/','It depends on the weather.'],
+  ['deposit','存放；存款；押金','/dɪˈpɒzɪt/','Make a deposit at the bank.'],
+  ['depress','使沮丧；按下','/dɪˈpres/','Bad news depresses me.'],
+  ['derive','源自；获得','/dɪˈraɪv/','Derive pleasure from reading.'],
+  ['describe','描述；形容','/dɪˈskraɪb/','Describe what you saw.'],
+  ['deserve','值得；应得','/dɪˈzɜːrv/','You deserve a reward.'],
+  ['design','设计；构思','/dɪˈzaɪn/','Design a new website.'],
+  ['desire','渴望；欲望','/dɪˈzaɪər/','A strong desire to succeed.'],
+  ['despite','尽管；不顾','/dɪˈspaɪt/','Despite the rain we went out.'],
+  ['destination','目的地；终点','/ˌdestɪˈneɪʃn/','Our destination is Beijing.'],
+  ['destroy','破坏；毁坏','/dɪˈstrɔɪ/','The fire destroyed the house.'],
+  ['detail','细节；详情','/ˈdiːteɪl/','Pay attention to detail.'],
+  ['detect','发现；察觉','/dɪˈtekt/','Detect a problem early.'],
+  ['determine','决定；确定','/dɪˈtɜːrmɪn/','Determine the cause of the issue.'],
+  ['develop','发展；开发','/dɪˈveləp/','Develop new skills quickly.'],
+  ['device','设备；装置','/dɪˈvaɪs/','A useful device for cooking.'],
+  ['devote','致力于；奉献','/dɪˈvoʊt/','Devote yourself to your work.'],
+  ['differ','不同；有区别','/ˈdɪfər/','Opinions differ on this topic.'],
+  ['digital','数字的；数码的','/ˈdɪdʒɪtl/','The digital age is here.'],
+  ['disappear','消失；不见','/ˌdɪsəˈpɪər/','The sun disappeared behind clouds.'],
+  ['discipline','纪律；学科','/ˈdɪsəplɪn/','Self-discipline is the key.'],
+  ['discount','折扣；贴现','/ˈdɪskaʊnt/','Give me a discount please.'],
+  ['display','展示；显示','/dɪˈspleɪ/','Display the artwork on the wall.'],
+  ['distinct','明显的；不同的','/dɪˈstɪŋkt/','Two distinct possibilities.'],
+  ['distribute','分配；分发','/dɪˈstrɪbjuːt/','Distribute food to the poor.'],
+  ['domestic','国内的；家庭的','/dəˈmestɪk/','Domestic flights are cheaper.'],
+  ['dominate','支配；统治','/ˈdɒmɪneɪt/','Dont let fear dominate you.'],
+  ['doubt','怀疑；疑问','/daʊt/','I doubt his honesty.'],
+  ['draft','草稿；草案；起草','/dræft/','Write a rough draft first.'],
+  ['dramatic','戏剧的；巨大的','/drəˈmætɪk/','Dramatic changes occurred.'],
+  ['economy','经济；节约','/ɪˈkɒnəmi/','The global economy is growing.'],
+  ['edition','版本；版次','/ɪˈdɪʃn/','The latest edition of the book.'],
+  ['educate','教育；培养','/ˈedʒukeɪt/','Educate yourself every day.'],
+  ['efficient','高效的；有效率的','/ɪˈfɪʃnt/','An efficient way to work.'],
+  ['effort','努力；尽力','/ˈefərt/','Every effort counts here.'],
+  ['elaborate','详尽阐述；精心的','/ɪˈlæbərət/','Elaborate on your idea.'],
+  ['elect','选举；选择','/ɪˈlekt/','He was elected president.'],
+  ['element','元素；要素','/ˈelɪmənt/','A key element of success.'],
+  ['eliminate','消除；淘汰','/ɪˈlɪmɪneɪt/','Eliminate all distractions.'],
+  ['embrace','拥抱；接受','/ɪmˈbreɪs/','Embrace new challenges.'],
+  ['emerge','出现；浮现','/iˈmɜːrdʒ/','New trends emerge every year.'],
+  ['emotion','情感；情绪','/ɪˈmoʊʃn/','Control your emotions well.'],
+  ['emphasis','强调；重点','/ˈemfəsɪs/','Put emphasis on quality.'],
+  ['employ','雇用；使用','/ɪmˈplɔɪ/','Employ new staff members.'],
+  ['enable','使能够；启用','/ɪˈneɪbl/','This will enable us to succeed.'],
+  ['encounter','遭遇；邂逅','/ɪnˈkaʊntər/','Encounter a problem today.'],
+  ['encourage','鼓励；激励','/ɪnˈkʌrɪdʒ/','Encourage your children to read.'],
+  ['engage','从事；订婚；吸引','/ɪnˈɡeɪdʒ/','Engage in conversation.'],
+  ['enormous','巨大的；庞大的','/ɪˈnɔːrməs/','An enormous amount of data.'],
+  ['ensure','确保；保证','/ɪnˈʃʊr/','Ensure the safety of everyone.'],
+  ['enterprise','企业；事业心','/ˈentərpraɪz/','A small private enterprise.'],
+  ['entertain','娱乐；招待','/ˌentərˈteɪn/','Entertain guests at home.'],
+  ['enthusiasm','热情；热忱','/ɪnˈθjuːziæzəm/','Full of enthusiasm for life.'],
+  ['entire','整个的；全部的','/ɪnˈtaɪər/','The entire world is watching.'],
+  ['environment','环境；周围','/ɪnˈvaɪrənmənt/','Protect the environment.'],
+  ['equal','相等的；平等的','/ˈiːkwəl/','Equal rights for everyone.'],
+  ['equip','装备；配备','/ɪˈkwɪp/','Equip yourself with knowledge.'],
+  ['essential','必要的；本质的','/ɪˈsenʃl/','Water is essential to life.'],
+  ['establish','建立；设立','/ɪˈstæblɪʃ/','Establish a new company.'],
+  ['estimate','估计；估算','/ˈestɪmeɪt/','Estimate the cost first.'],
+  ['evaluate','评估；评价','/ɪˈvæljueɪt/','Evaluate the results carefully.'],
+  ['eventually','最终；终于','/ɪˈventʃuəli/','Eventually he gave up.'],
+  ['evidence','证据；迹象','/ˈevɪdəns/','There is no evidence of crime.'],
+  ['evolve','进化；发展','/iˈvɒlv/','Technology continues to evolve.'],
+  ['examine','检查；考试','/ɪɡˈzæmɪn/','Examine the patient carefully.'],
+  ['exchange','交换；交流；兑换','/ɪksˈtʃeɪndʒ/','Exchange ideas with others.'],
+  ['exclude','排除；排斥','/ɪkˈskluːd/','Dont exclude anyone from the team.'],
+  ['execute','执行；处决','/ˈeksɪkjuːt/','Execute the plan as scheduled.'],
+  ['exhibit','展览；展示','/ɪɡˈzɪbɪt/','Exhibit your artwork here.'],
+  ['exist','存在；生存','/ɪɡˈzɪst/','Do aliens really exist?'],
+  ['expand','扩大；膨胀','/ɪkˈspænd/','Expand your business overseas.'],
+  ['expect','期望；预期','/ɪkˈspekt/','I expect you to be on time.'],
+  ['experiment','实验；试验','/ɪkˈsperɪmənt/','Conduct a science experiment.'],
+  ['expert','专家；内行的','/ˈekspɜːrt/','An expert in ancient history.'],
+  ['explain','解释；说明','/ɪkˈspleɪn/','Can you explain this to me?'],
+  ['explore','探索；探险','/ɪkˈsplɔːr/','Explore the unknown world.'],
+  ['export','出口；输出','/ɪkˈspɔːrt/','Export goods to many countries.'],
+  ['expose','暴露；揭露','/ɪkˈspoʊz/','Expose the truth to public.'],
+  ['extend','延伸；扩展','/ɪkˈstend/','Extend the deadline by one week.'],
+  ['external','外部的；外界的','/ɪkˈstɜːrnl/','External factors affect us.'],
+  ['extraordinary','非凡的；特别的','/ɪkˈstrɔːrdəneri/','An extraordinary achievement.'],
+  ['extreme','极端的；非常的','/ɪkˈstriːm/','Extreme weather conditions.'],
+  ['facility','设施；设备','/fəˈsɪləti/','Sports facilities are great here.'],
+  ['factor','因素；因子','/ˈfæktər/','A key factor for success.'],
+  ['faith','信念；信任；信仰','/feɪθ/','Have faith in yourself always.'],
+  ['familiar','熟悉的；常见的','/fəˈmɪliər/','This song sounds familiar to me.'],
+  ['fascinating','迷人的；极好的','/ˈfæsɪneɪtɪŋ/','A fascinating story to tell.'],
+  ['fashion','时尚；方式','/ˈfæʃn/','Fashion changes every season.'],
+  ['fatal','致命的；毁灭性的','/ˈfeɪtl/','A fatal mistake in judgment.'],
+  ['feature','特征；特色','/ˈfiːtʃər/','The main feature of this phone.'],
+  ['finance','财政；金融','/ˈfaɪnæns/','Personal finance is important.'],
+  ['flexible','灵活的；可变通的','/ˈfleksəbl/','We offer flexible working hours.'],
+  ['focus','焦点；集中','/ˈfoʊkəs/','Focus on whats important now.'],
+  ['forbid','禁止；不许','/fərˈbɪd/','Smoking is strictly forbidden.'],
+  ['forecast','预测；预报','/ˈfɔːrkæst/','The weather forecast says rain.'],
+  ['former','以前的；前者的','/ˈfɔːrmər/','My former teacher was great.'],
+  ['fortune','财富；运气','/ˈfɔːrtʃuːn/','He made a fortune in business.'],
+  ['foundation','基础；基金会','/faʊnˈdeɪʃn/','Lay a solid foundation for future.'],
+  ['frequent','频繁的；经常的','/ˈfriːkwənt/','Frequent exercise keeps you fit.'],
+  ['fulfill','履行；实现','/fʊlˈfɪl/','Fulfill your dreams and goals.'],
+  ['function','功能；作用','/ˈfʌŋkʃn/','What is the function of this?'],
+  ['fundamental','基本的；根本的','/ˌfʌndəˈmentl/','Fundamental human rights for all.'],
+  ['generate','产生；生成','/ˈdʒenəreɪt/','Generate new ideas every day.'],
+  ['generous','慷慨的；大方的','/ˈdʒenərəs/','He is generous with his time.'],
+  ['genuine','真的；真诚的','/ˈdʒenjuɪn/','A genuine smile is priceless.'],
+  ['global','全球的；全面的','/ˈɡloʊbl/','Global warming is a serious issue.'],
+  ['gradual','逐渐的；缓慢的','/ˈɡrædʒuəl/','A gradual improvement in skills.'],
+  ['guarantee','保证；担保','/ˌɡærənˈtiː/','I guarantee you will love it.'],
+  ['habit','习惯；习性','/ˈhæbɪt/','Good habits lead to success.'],
+  ['handle','处理；把手','/ˈhændl/','Can you handle this task alone?'],
+  ['harmony','和谐；融洽','/ˈhɑːrməni/','Live in harmony with nature.'],
+  ['hesitate','犹豫；迟疑','/ˈhezɪteɪt/','Dont hesitate to ask for help.'],
+  ['highlight','突出；强调','/ˈhaɪlaɪt/','Highlight the key points clearly.'],
+  ['horizon','地平线；视野','/həˈraɪzn/','Broaden your horizons through travel.'],
+  ['hostile','敌对的；敌意的','/ˈhɒstaɪl/','A hostile environment at work.'],
+  ['household','家庭；户','/ˈhaʊshoʊld/','Household chores are never done.'],
+  ['humble','谦逊的；卑微的','/ˈhʌmbl/','Stay humble no matter what.'],
+  ['identify','识别；确认','/aɪˈdentɪfaɪ/','Identify the problem first.'],
+  ['ignore','忽视；不理','/ɪɡˈnɔːr/','Dont ignore his advice please.'],
+  ['illustrate','说明；举例说明','/ˈɪləstreɪt/','Illustrate your point with examples.'],
+  ['imagine','想象；设想','/ɪˈmædʒɪn/','Imagine a world without war.'],
+  ['immediate','立即的；直接的','/ɪˈmiːdiət/','Take immediate action right now.'],
+  ['impact','影响；冲击','/ˈɪmpækt/','The impact of social media.'],
+  ['implement','实施；执行','/ˈɪmplɪment/','Implement the new policy soon.'],
+  ['imply','暗示；意味','/ɪmˈplaɪ/','What are you implying exactly?'],
+  ['impose','强加；征收','/ɪmˈpoʊz/','Dont impose your views on others.'],
+  ['impress','给...留下印象','/ɪmˈpres/','She impressed everyone with her speech.'],
+  ['incident','事件；事故','/ˈɪnsɪdənt/','A minor incident occurred today.'],
+  ['indicate','表明；指示','/ˈɪndɪkeɪt/','Research indicates that exercise helps.'],
+  ['individual','个人；个体的','/ˌɪndɪˈvɪdʒuəl/','Each individual is unique.'],
+  ['industry','工业；勤奋','/ˈɪndəstri/','The tech industry is booming.'],
+  ['inevitable','不可避免的','/ɪnˈevɪtəbl/','Change is inevitable in life.'],
+  ['influence','影响；势力','/ˈɪnfluəns/','Peer influence is very strong.'],
+  ['inform','通知；告知','/ɪnˈfɔːrm/','Please inform us of any changes.'],
+  ['initial','初始的；最初的','/ɪˈnɪʃl/','The initial stage is the hardest.'],
+  ['initiative','主动性；倡议','/ɪˈnɪʃətɪv/','Take the initiative to lead.'],
+  ['innocent','无辜的；天真的','/ˈɪnəsnt/','He was proven innocent in court.'],
+  ['innovation','创新；革新','/ˌɪnəˈveɪʃn/','Innovation drives the future.'],
+  ['inspire','鼓舞；激励','/ɪnˈspaɪər/','Inspire others with your actions.'],
+  ['install','安装；设置','/ɪnˈstɔːl/','Install the software on your PC.'],
+  ['institution','机构；制度','/ˌɪnstɪˈtjuːʃn/','A financial institution like a bank.'],
+  ['instrument','工具；乐器','/ˈɪnstrəmənt/','Musical instruments are her passion.'],
+  ['insurance','保险；保险费','/ɪnˈʃʊrəns/','Buy health insurance for safety.'],
+  ['integrate','整合；融入','/ˈɪntɪɡreɪt/','Integrate theory with practice.'],
+  ['intellectual','智力的；知识分子','/ˌɪntəˈlektʃuəl/','Intellectual property rights matter.'],
+  ['intelligence','智力；情报','/ɪnˈtelɪdʒəns/','Artificial intelligence is advancing.'],
+  ['intend','打算；计划','/ɪnˈtend/','What do you intend to do now?'],
+  ['intense','强烈的；激烈的','/ɪnˈtens/','Intense competition in the market.'],
+  ['interact','互动；相互作用','/ˌɪntərˈækt/','Interact with your classmates more.'],
+  ['interpret','解释；口译','/ɪnˈtɜːrprɪt/','Interpret the data correctly.'],
+  ['invest','投资；投入','/ɪnˈvest/','Invest your time wisely.'],
+  ['investigate','调查；研究','/ɪnˈvestɪɡeɪt/','Investigate the cause of the fire.'],
+  ['involve','涉及；参与','/ɪnˈvɒlv/','The job involves a lot of travel.'],
+  ['isolate','隔离；孤立','/ˈaɪsəleɪt/','Dont isolate yourself from others.'],
+  ['issue','问题；发行','/ˈɪʃuː/','A serious issue needs addressing.'],
+  ['journal','期刊；日志','/ˈdʒɜːrnl/','Keep a journal every day.'],
+  ['justice','公正；司法','/ˈdʒʌstɪs/','Fight for social justice.'],
+  ['justify','证明...是正确的','/ˈdʒʌstɪfaɪ/','How can you justify that action?'],
+  ['keen','热心的；敏锐的','/kiːn/','She is keen on learning languages.'],
+  ['label','标签；标注','/ˈleɪbl/','Read the label before buying.'],
+  ['landscape','风景；景观','/ˈlændskeɪp/','A beautiful landscape painting.'],
+  ['launch','发射；发起','/lɔːntʃ/','Launch a new product next month.'],
+  ['legal','法律的；合法的','/ˈliːɡl/','Is this contract legally binding?'],
+  ['liberal','自由的；开明的','/ˈlɪbərəl/','A liberal arts education.'],
+  ['likely','可能的；适合的','/ˈlaɪkli/','It is likely to rain today.'],
+  ['limit','限制；界限','/ˈlɪmɪt/','Know your own limits well.'],
+  ['link','联系；链接','/lɪŋk/','Click the link to learn more.'],
+  ['locate','找到；位于','/loʊˈkeɪt/','Locate the nearest hospital quickly.'],
+  ['logical','逻辑的；合理的','/ˈlɒdʒɪkl/','A logical explanation would help.'],
+  ['maintain','维持；保养','/meɪnˈteɪn/','Maintain a healthy lifestyle everyday.'],
+  ['major','主要的；主修','/ˈmeɪdʒər/','A major breakthrough in science.'],
+  ['manage','管理；设法','/ˈmænɪdʒ/','Manage your time more efficiently.'],
+  ['manufacture','制造；生产','/ˌmænjuˈfæktʃər/','Manufacture goods for export.'],
+  ['mature','成熟的；成年','/məˈtʃʊr/','A mature attitude towards life.'],
+  ['maximum','最大量；最大的','/ˈmæksɪməm/','The maximum speed is 120 km/h.'],
+  ['mechanism','机制；机械','/ˈmekənɪzəm/','The mechanism of the clock.'],
+  ['mental','心理的；精神的','/ˈmentl/','Mental health is very important.'],
+  ['mild','温和的；轻微的','/maɪld/','A mild climate all year round.'],
+  ['military','军事的；军队','/ˈmɪləteri/','Military service is required here.'],
+  ['minimum','最小值；最小的','/ˈmɪnɪməm/','The minimum wage has increased.'],
+  ['minor','较小的；次要的','/ˈmaɪnər/','A minor problem to fix quickly.'],
+  ['mission','使命；任务','/ˈmɪʃn/','Our mission is to help people.'],
+  ['modify','修改；调整','/ˈmɒdɪfaɪ/','Modify the design slightly please.'],
+  ['monitor','监控；监视器','/ˈmɒnɪtər/','Monitor the progress closely.'],
+  ['motivate','激励；激发','/ˈmoʊtɪveɪt/','Motivate yourself every morning.'],
+  ['negotiate','谈判；协商','/nɪˈɡoʊʃieɪt/','Negotiate a better price for it.'],
+  ['network','网络；关系网','/ˈnetwɜːrk/','Build a strong professional network.'],
+  ['normal','正常的；标准的','/ˈnɔːrml/','Return to normal life soon.'],
+  ['notion','概念；想法','/ˈnoʊʃn/','I dont agree with that notion.'],
+  ['numerous','许多的；大量的','/ˈnjuːmərəs/','Numerous attempts were made.'],
+  ['objective','客观的；目标','/əbˈdʒektɪv/','Set a clear objective first.'],
+  ['obtain','获得；得到','/əbˈteɪn/','Obtain permission from your boss.'],
+  ['obvious','明显的；显然的','/ˈɒbviəs/','The answer is obvious to me.'],
+  ['occasion','场合；时机','/əˈkeɪʒn/','A special occasion to celebrate.'],
+  ['occupy','占据；使忙碌','/ˈɒkjupaɪ/','Reading occupies most of my time.'],
+  ['offend','冒犯；得罪','/əˈfend/','I hope I didnt offend you.'],
+  ['operate','操作；经营；手术','/ˈɒpəreɪt/','Operate the machine with care.'],
+  ['opponent','对手；反对者','/əˈpoʊnənt/','A worthy opponent in the game.'],
+  ['opportunity','机会；时机','/ˌɒpəˈtjuːnəti/','Seize every opportunity you get.'],
+  ['oppose','反对；对抗','/əˈpoʊz/','I oppose that plan completely.'],
+  ['option','选择；选项','/ˈɒpʃn/','You have no other option now.'],
+  ['ordinary','普通的；平凡的','/ˈɔːrdneri/','An ordinary person can do it.'],
+  ['organize','组织；安排','/ˈɔːrɡənaɪz/','Organize your thoughts before speaking.'],
+  ['original','原始的；独创的','/əˈrɪdʒənl/','The original idea was brilliant.'],
+  ['overcome','克服；战胜','/ˌoʊvərˈkʌm/','Overcome your fear of failure.'],
+  ['participate','参加；参与','/pɑːrˈtɪsɪpeɪt/','Participate in class discussions.'],
+  ['particular','特定的；挑剔的','/pərˈtɪkjələr/','Pay particular attention to details.'],
+  ['passion','热情；激情','/ˈpæʃn/','She has a passion for music.'],
+  ['patient','病人；耐心的','/ˈpeɪʃnt/','Be patient with yourself always.'],
+  ['pattern','模式；图案','/ˈpætərn/','A repeating pattern of behavior.'],
+  ['perform','表演；执行','/pərˈfɔːrm/','Perform the task as instructed.'],
+  ['permanent','永久的；持久的','/ˈpɜːrmənənt/','A permanent solution is needed.'],
+  ['permit','允许；许可','/pərˈmɪt/','Smoking is not permitted here.'],
+  ['persist','坚持；持续','/pərˈsɪst/','Persist until you succeed finally.'],
+  ['personality','个性；性格','/ˌpɜːrsəˈnæləti/','She has a charming personality.'],
+  ['perspective','观点；视角','/pərˈspektɪv/','See it from a different perspective.'],
+  ['phenomenon','现象','/fɪˈnɒmɪnən/','A natural phenomenon to observe.'],
+  ['philosophy','哲学；人生观','/fɪˈlɒsəfi/','My philosophy of life is simple.'],
+  ['phrase','短语；词组','/freɪz/','Learn a useful phrase every day.'],
+  ['physical','身体的；物理的','/ˈfɪzɪkl/','Physical exercise keeps you healthy.'],
+  ['policy','政策；方针','/ˈpɒləsi/','The companys policy on leave.'],
+  ['pollution','污染','/pəˈluːʃn/','Air pollution is getting worse.'],
+  ['population','人口；种群','/ˌpɒpjuˈleɪʃn/','The worlds population is growing.'],
+  ['portion','部分；一份','/ˈpɔːrʃn/','A small portion of food please.'],
+  ['possess','拥有；具有','/pəˈzes/','Possess a good sense of humor.'],
+  ['potential','潜力；潜在的','/pəˈtenʃl/','You have great potential to succeed.'],
+  ['poverty','贫困；贫穷','/ˈpɒvərti/','Millions live in poverty still.'],
+  ['practical','实际的；实用的','/ˈpræktɪkl/','A practical solution to the problem.'],
+  ['precious','珍贵的；宝贵的','/ˈpreʃəs/','Time is the most precious gift.'],
+  ['precise','精确的；准确的','/prɪˈsaɪs/','Give me a precise answer please.'],
+  ['predict','预测；预言','/prɪˈdɪkt/','Predict the outcome of the match.'],
+  ['prefer','更喜欢；偏好','/prɪˈfɜːr/','I prefer tea to coffee actually.'],
+  ['prejudice','偏见；歧视','/ˈpredʒudɪs/','Fight against racial prejudice.'],
+  ['preserve','保存；保护','/prɪˈzɜːrv/','Preserve the environment for future.'],
+  ['pressure','压力；压迫','/ˈpreʃər/','Too much pressure can harm you.'],
+  ['previous','先前的；以前的','/ˈpriːviəs/','A previous version of the software.'],
+  ['principle','原理；原则','/ˈprɪnsəpl/','Stick to your principles always.'],
+  ['priority','优先；优先权','/praɪˈɒrəti/','Health should be your top priority.'],
+  ['procedure','程序；步骤','/prəˈsiːdʒər/','Follow the standard procedure.'],
+  ['process','过程；处理','/ˈproʊses/','Learning is a lifelong process.'],
+  ['professional','专业的；职业的','/prəˈfeʃənl/','A highly professional service.'],
+  ['profit','利润；收益','/ˈprɒfɪt/','The company made a huge profit.'],
+  ['progress','进步；进展','/ˈproʊɡres/','You are making great progress.'],
+  ['prohibit','禁止；阻止','/prəˈhɪbɪt/','Smoking is prohibited in this area.'],
+  ['project','项目；工程','/ˈprɒdʒekt/','Complete the project on time.'],
+  ['promote','促进；晋升；推广','/prəˈmoʊt/','Promote a healthy lifestyle daily.'],
+  ['proper','合适的；适当的','/ˈprɒpər/','Wear proper clothes for the event.'],
+  ['property','财产；特性','/ˈprɒpərti/','Protect your personal property.'],
+  ['proposal','提议；建议','/prəˈpoʊzl/','A marriage proposal was made.'],
+  ['prospect','前景；展望','/ˈprɒspekt/','The prospect of a new job.'],
+  ['protest','抗议；反对','/ˈproʊtest/','A peaceful protest was held.'],
+  ['provided','假如；以...为条件','/prəˈvaɪdɪd/','Provided that you agree to it.'],
+  ['publish','出版；发布','/ˈpʌblɪʃ/','Publish your research findings online.'],
+  ['purchase','购买','/ˈpɜːrtʃəs/','Purchase a new car next week.'],
+  ['pursue','追求；追逐','/pərˈsjuː/','Pursue your dreams no matter what.'],
+  ['quality','质量；品质','/ˈkwɒləti/','Quality is more important than quantity.'],
+  ['quantity','数量；大量','/ˈkwɒntəti/','A large quantity of water needed.'],
+  ['range','范围；幅度','/reɪndʒ/','A wide range of products available.'],
+  ['rapid','迅速的；快的','/ˈræpɪd/','Rapid growth in the tech sector.'],
+  ['rate','比率；速度；评价','/reɪt/','The success rate is very high.'],
+  ['reaction','反应；回应','/riˈækʃn/','What was his reaction to the news?'],
+  ['reasonable','合理的；通情达理的','/ˈriːznəbl/','A reasonable price for the item.'],
+  ['recognize','认出；承认','/ˈrekəɡnaɪz/','I didnt recognize you at first.'],
+  ['recommend','推荐；建议','/ˌrekəˈmend/','I recommend this book to you.'],
+  ['recover','恢复；康复','/rɪˈkʌvər/','Recover from the illness quickly.'],
+  ['reduce','减少；降低','/rɪˈdjuːs/','Reduce your carbon footprint now.'],
+  ['reflect','反映；反射；反思','/rɪˈflekt/','Reflect on what you have learned.'],
+  ['reform','改革；革新','/rɪˈfɔːrm/','Economic reform is needed badly.'],
+  ['regard','看待；尊敬；关于','/rɪˈɡɑːrd/','I regard him as a true friend.'],
+  ['register','登记；注册','/ˈredʒɪstər/','Register for the course online.'],
+  ['regulate','调节；管理','/ˈreɡjuleɪt/','Regulate your sleep schedule.'],
+  ['reject','拒绝；排斥','/rɪˈdʒekt/','The proposal was rejected outright.'],
+  ['relate','相关；叙述','/rɪˈleɪt/','Can you relate to this story?'],
+  ['release','释放；发布','/rɪˈliːs/','Release the latest version today.'],
+  ['relevant','相关的；切题的','/ˈreləvənt/','Is this information relevant to you?'],
+  ['relief','减轻；救济','/rɪˈliːf/','A sense of relief washed over me.'],
+  ['rely','依赖；信赖','/rɪˈlaɪ/','Rely on yourself not others always.'],
+  ['remain','保持；剩余','/rɪˈmeɪn/','Please remain seated until called.'],
+  ['remark','评论；注意','/rɪˈmɑːrk/','A rude remark hurt her feelings.'],
+  ['remedy','补救；治疗','/ˈremədi/','Find a remedy for the problem.'],
+  ['remote','遥远的；偏远的','/rɪˈmoʊt/','A remote village in the mountains.'],
+  ['remove','移除；删除','/rɪˈmuːv/','Remove all obstacles from your path.'],
+  ['replace','替换；代替','/rɪˈpleɪs/','Replace old habits with new ones.'],
+  ['represent','代表；表示','/ˌreprɪˈzent/','Represent your country with pride.'],
+  ['reputation','名声；声誉','/ˌrepjuˈteɪʃn/','A good reputation is hard to earn.'],
+  ['request','请求；要求','/rɪˈkwest/','I have a small request to make.'],
+  ['require','需要；要求','/rɪˈkwaɪər/','This job requires a lot of skill.'],
+  ['research','研究；调查','/rɪˈsɜːrtʃ/','Do thorough research before deciding.'],
+  ['reserve','保留；预订','/rɪˈzɜːrv/','Reserve a table for two please.'],
+  ['resign','辞职；放弃','/rɪˈzaɪn/','He decided to resign from his job.'],
+  ['resist','抵抗；抵制','/rɪˈzɪst/','Resist the temptation to eat sweets.'],
+  ['resolve','解决；决心','/rɪˈzɒlv/','Resolve conflicts through dialogue.'],
+  ['resource','资源；财力','/ˈriːsɔːrs/','Natural resources are limited on Earth.'],
+  ['respond','回应；回答','/rɪˈspɒnd/','Please respond to my email soon.'],
+  ['responsible','负责的；有责任的','/rɪˈspɒnsəbl/','You are responsible for your actions.'],
+  ['restore','恢复；修复','/rɪˈstɔːr/','Restore the old building carefully.'],
+  ['restrict','限制；约束','/rɪˈstrɪkt/','Restrict access to authorized personnel.'],
+  ['reveal','揭示；透露','/rɪˈviːl/','Reveal the secret to your friend.'],
+  ['revenue','收入；税收','/ˈrevənjuː/','The company generated huge revenue.'],
+  ['revolution','革命；旋转','/ˌrevəˈluːʃn/','The industrial revolution changed everything.'],
+  ['risk','风险；冒险','/rɪsk/','Dont take unnecessary risks please.'],
+  ['rival','对手；竞争者','/ˈraɪvl/','A fierce rival in the industry.'],
+  ['rural','农村的；乡下的','/ˈrʊrəl/','Life in rural areas is peaceful.'],
+  ['sacrifice','牺牲；献祭','/ˈsækrɪfaɪs/','Sacrifice your time for a good cause.'],
+  ['satisfy','满足；使满意','/ˈsætɪsfaɪ/','Satisfy the customer needs first.'],
+  ['schedule','时间表；安排','/ˈskedʒuːl/','Check your schedule for tomorrow.'],
+  ['scheme','计划；方案','/skiːm/','A scheme to improve efficiency.'],
+  ['security','安全；保安','/sɪˈkjʊrəti/','National security is a top priority.'],
+  ['seek','寻找；寻求','/siːk/','Seek help when you need it.'],
+  ['select','选择；挑选','/sɪˈlekt/','Select the best option for you.'],
+  ['senior','年长的；高级的','/ˈsiːniər/','A senior manager of the company.'],
+  ['sensible','明智的；合理的','/ˈsensəbl/','A sensible approach to the problem.'],
+  ['sensitive','敏感的；易受影响的','/ˈsensətɪv/','She is very sensitive to criticism.'],
+  ['separate','分开；分离','/ˈsepəreɪt/','Separate the good from the bad.'],
+  ['severe','严重的；严厉的','/sɪˈvɪər/','Severe weather conditions ahead.'],
+  ['shelter','庇护所；遮蔽','/ˈʃeltər/','Find shelter from the rain quickly.'],
+  ['signal','信号；暗号','/ˈsɪɡnəl/','A traffic signal turned red now.'],
+  ['significant','重要的；有意义的','/sɪɡˈnɪfɪkənt/','A significant improvement in grades.'],
+  ['similar','相似的；类似的','/ˈsɪmələr/','Your idea is similar to mine.'],
+  ['simplify','简化；使简单','/ˈsɪmplɪfaɪ/','Simplify the process step by step.'],
+  ['skill','技能；技巧','/skɪl/','Learn a new skill every month.'],
+  ['slight','轻微的；少量的','/slaɪt/','A slight change can make a difference.'],
+  ['social','社会的；社交的','/ˈsoʊʃl/','Social media connects people worldwide.'],
+  ['solution','解决方案；溶液','/səˈluːʃn/','Find a solution to this problem.'],
+  ['somehow','以某种方式；不知怎么的','/ˈsʌmhaʊ/','We will make it work somehow.'],
+  ['sophisticated','复杂的；精密的；老练的','/səˈfɪstɪkeɪtɪd/','A sophisticated piece of technology.'],
+  ['source','来源；出处','/sɔːrs/','A reliable source of information.'],
+  ['specific','具体的；特定的','/spəˈsɪfɪk/','Be more specific about your plans.'],
+  ['stable','稳定的；稳固的','/ˈsteɪbl/','A stable income is very important.'],
+  ['standard','标准；规范的','/ˈstændərd/','Meet the standard requirements set.'],
+  ['status','地位；状态','/ˈsteɪtəs/','Check the status of your order.'],
+  ['strategy','策略；战略','/ˈstrætədʒi/','Develop a winning strategy now.'],
+  ['strength','力量；优势','/streŋθ/','Know your own strengths and weaknesses.'],
+  ['stress','压力；强调','/stres/','Stress can harm your health badly.'],
+  ['structure','结构；构造','/ˈstrʌktʃər/','The structure of the essay matters.'],
+  ['struggle','斗争；奋斗','/ˈstrʌɡl/','Struggle through difficult times together.'],
+  ['substitute','替代品；替换','/ˈsʌbstɪtjuːt/','Find a substitute for sugar now.'],
+  ['sufficient','足够的；充分的','/səˈfɪʃnt/','Do you have sufficient evidence for this?'],
+  ['suggest','建议；暗示','/səˈdʒest/','What do you suggest we do now?'],
+  ['summarize','总结；概括','/ˈsʌməraɪz/','Summarize the main points briefly.'],
+  ['superior','上级的；优越的','/suːˈpɪəriər/','A superior quality product indeed.'],
+  ['supply','供应；供给','/səˈplaɪ/','Supply and demand affect price.'],
+  ['support','支持；支援','/səˈpɔːrt/','Support your local businesses always.'],
+  ['suppose','假设；认为','/səˈpoʊz/','I suppose you are right again.'],
+  ['survey','调查；测量','/ˈsɜːrveɪ/','Conduct a survey among students.'],
+  ['survive','幸存；生存','/sərˈvaɪv/','Survive the toughest challenges in life.'],
+  ['suspect','怀疑；嫌疑犯','/səˈspekt/','I suspect he is lying to us.'],
+  ['sustain','维持；支撑','/səˈsteɪn/','Sustain your effort over time.'],
+  ['symbol','符号；象征','/ˈsɪmbl/','A symbol of peace and hope.'],
+  ['symptom','症状；征兆','/ˈsɪmptəm/','A common symptom of the flu.'],
+  ['target','目标；靶子','/ˈtɑːrɡɪt/','Set a clear target and aim high.'],
+  ['technique','技术；技巧','/tekˈniːk/','Learn a new technique today.'],
+  ['technology','技术；科技','/tekˈnɒlədʒi/','Technology is changing our lives.'],
+  ['temporary','临时的；暂时的','/ˈtemprəri/','A temporary solution for now.'],
+  ['tend','趋向；倾向于','/tend/','People tend to avoid hard work.'],
+  ['tension','紧张；张力','/ˈtenʃn/','There is tension in the air.'],
+  ['terminal','终端；末期的','/ˈtɜːrmɪnl/','The bus terminal is over there.'],
+  ['threat','威胁；恐吓','/θret/','A serious threat to our safety.'],
+  ['tolerate','容忍；忍受','/ˈtɒləreɪt/','I cannot tolerate such behavior.'],
+  ['tradition','传统；惯例','/trəˈdɪʃn/','Respect local traditions and customs.'],
+  ['transfer','转移；调动','/trænsˈfɜːr/','Transfer money to your account.'],
+  ['transform','转变；改造','/trænsˈfɔːrm/','Transform your life for the better.'],
+  ['tremendous','巨大的；极好的','/trɪˈmendəs/','We made tremendous progress today.'],
+  ['trend','趋势；潮流','/trend/','Follow the latest fashion trends.'],
+  ['typical','典型的；特有的','/ˈtɪpɪkl/','A typical example of this kind.'],
+  ['ultimate','最终的；根本的','/ˈʌltɪmət/','The ultimate goal is to be happy.'],
+  ['undergo','经历；遭受','/ˌʌndərˈɡoʊ/','Undergo a major transformation soon.'],
+  ['undertake','承担；从事','/ˌʌndərˈteɪk/','Undertake a new project today.'],
+  ['unique','独特的；唯一的','/juˈniːk/','Everyone has a unique talent inside.'],
+  ['universal','普遍的；全世界的','/ˌjuːnɪˈvɜːrsl/','A universal truth about human nature.'],
+  ['urban','城市的；都市的','/ˈɜːrbən/','Urban life is fast and busy.'],
+  ['urge','催促；强烈要求','/ɜːrdʒ/','I urge you to reconsider that.'],
+  ['utilize','利用；使用','/ˈjuːtəlaɪz/','Utilize your resources more wisely.'],
+  ['valid','有效的；合理的','/ˈvælɪd/','Is your passport still valid now?'],
+  ['value','价值；重视','/ˈvæljuː/','Value your time and energy.'],
+  ['variety','多样性；种类','/vəˈraɪəti/','A variety of choices to pick.'],
+  ['version','版本；说法','/ˈvɜːrʒn/','The latest version of the app.'],
+  ['victim','受害者；牺牲品','/ˈvɪktɪm/','The victim of a cruel joke.'],
+  ['violent','暴力的；猛烈的','/ˈvaɪələnt/','Violent behavior is never acceptable.'],
+  ['visible','可见的；明显的','/ˈvɪzəbl/','The stars are clearly visible tonight.'],
+  ['vision','视力；愿景','/ˈvɪʒn/','A clear vision for the future.'],
+  ['vital','至关重要的','/ˈvaɪtl/','Water is vital for human survival.'],
+  ['volume','音量；体积；卷','/ˈvɒljuːm/','Turn down the volume a bit.'],
+  ['voluntary','自愿的；志愿的','/ˈvɒləntri/','Voluntary work is very rewarding.'],
+  ['vulnerable','脆弱的；易受伤的','/ˈvʌlnərəbl/','Children are vulnerable to diseases.'],
+  ['welfare','福利；幸福','/ˈwelfeər/','Social welfare programs are needed.'],
+  ['widespread','广泛的；普遍的','/ˈwaɪdspred/','Widespread use of smartphones today.'],
+  ['witness','目击者；见证','/ˈwɪtnəs/','A witness to the accident spoke.'],
+  ['worthwhile','值得的；有价值的','/ˌwɜːrθˈwaɪl/','A worthwhile investment of time.'],
+  ['yield','产出；屈服','/jiːld/','The field yields a good harvest.'],
+  ['zone','区域；地带','/zoʊn/','A no-parking zone around here.'],
+  ['absorb','吸收；吸引','/əbˈzɔːrb/','Plants absorb sunlight and water.'],
+  ['abstract','抽象的；摘要','/ˈæbstrækt/','Abstract art is hard to understand.'],
+  ['abuse','滥用；虐待','/əˈbjuːs/','Substance abuse ruins many lives.'],
+  ['academy','学院；学会','/əˈkædəmi/','He studied at a military academy.'],
+  ['accelerate','加速','/əkˈseləreɪt/','Accelerate the pace of reform.'],
+  ['accessible','可接近的；易接近的','/əkˈsesəbl/','Make education accessible to all.'],
+  ['accommodate','容纳；提供住宿','/əˈkɒmədeɪt/','This hotel can accommodate 200 guests.'],
+  ['accompany','陪伴','/əˈkʌmpəni/','I will accompany you to the station.'],
+  ['accomplish','完成；达到','/əˈkɒmplɪʃ/','What did you accomplish today?'],
+  ['accordingly','因此；相应地','/əˈkɔːrdɪŋli/','Act accordingly to the situation.'],
+  ['account','账户；解释','/əˈkaʊnt/','Give an account of what happened.'],
+  ['accumulate','积累；堆积','/əˈkjuːmjəleɪt/','Dust accumulates on the shelves.'],
+  ['accuse','指控','/əˈkjuːz/','They accused him of stealing.'],
+  ['achieve','实现','/əˈtʃiːv/','Achieve your goals step by step.'],
+  ['acid','酸；酸性物质','/ˈæsɪd/','Lemon juice contains citric acid.'],
+  ['adapt','适应','/əˈdæpt/','Adapt to changing circumstances quickly.'],
+  ['addition','增加；添加','/əˈdɪʃn/','In addition to English learn French.'],
+  ['adequate','足够的','/ˈædɪkwət/','An adequate supply of food and water.'],
+  ['adjust','调整','/əˈdʒʌst/','Adjust the seat to your comfort.'],
+  ['administration','管理；行政','/ədˌmɪnɪˈstreɪʃn/','Business administration is a popular major.'],
+  ['admire','钦佩','/ədˈmaɪər/','I admire people who work hard.'],
+  ['admission','准许进入；承认','/ədˈmɪʃn/','Gain admission to a top university.'],
+  ['adopt','收养；采用','/əˈdɒpt/','Adopt a positive attitude towards life.'],
+  ['adverse','不利的；相反的','/ˈædvɜːrs/','Adverse weather conditions delayed us.'],
+  ['advocate','倡导者；提倡','/ˈædvəkeɪt/','Advocate for equal rights for all.'],
+  ['affect','影响','/əˈfekt/','How does stress affect your health?'],
+  ['affection','喜爱；感情','/əˈfekʃn/','Show affection to your family often.'],
+  ['aggressive','侵略的','/əˈɡresɪv/','An aggressive marketing strategy worked.'],
+  ['agreement','协议；同意','/əˈɡriːmənt/','Sign an agreement before starting work.'],
+  ['alter','改变','/ˈɔːltər/','We had to alter our plans.'],
+  ['alternative','替代的；选择','/ɔːlˈtɜːrnətɪv/','Find an alternative route to school.'],
+  ['ambition','野心','/æmˈbɪʃn/','Her ambition is to become a doctor.'],
+  ['amuse','逗乐；娱乐','/əˈmjuːz/','The joke did not amuse me.'],
+  ['analyze','分析','/ˈænəlaɪz/','Analyze the problem before solving it.'],
+  ['ancestor','祖先','/ˈænsestər/','Our ancestors lived thousands of years ago.'],
+  ['anniversary','周年纪念日','/ˌænɪˈvɜːrsəri/','Our wedding anniversary is in June.'],
+  ['annoy','使烦恼','/əˈnɔɪ/','His constant complaining annoys me.'],
+  ['annual','每年的','/ˈænjuəl/','The annual festival attracts many visitors.'],
+  ['anticipate','预期；期望','/ænˈtɪsɪpeɪt/','We anticipate a good harvest this year.'],
+  ['anxiety','焦虑','/æŋˈzaɪəti/','Test anxiety affects many students.'],
+  ['apparent','明显的','/əˈpærənt/','It became apparent that he was lying.'],
+  ['appetite','食欲；胃口','/ˈæpɪtaɪt/','Exercise gives me a good appetite.'],
+  ['appliance','电器；器具','/əˈplaɪəns/','Kitchen appliances make cooking easier.'],
+  ['applicant','申请人','/ˈæplɪkənt/','The job applicant impressed everyone.'],
+  ['appoint','任命','/əˈpɔɪnt/','Appoint a new manager for the team.'],
+  ['appreciate','欣赏；感激','/əˈpriːʃieɪt/','I really appreciate your kindness.'],
+  ['approach','接近','/əˈproʊtʃ/','Winter is approaching very fast now.'],
+  ['appropriate','适当的','/əˈproʊpriət/','Wear appropriate clothes for the interview.'],
+  ['approval','批准；赞成','/əˈpruːvl/','The plan needs your approval first.'],
+  ['approve','批准','/əˈpruːv/','The boss approved my vacation request.'],
+  ['arise','出现','/əˈraɪz/','If problems arise let me know.'],
+  ['arouse','引起；唤醒','/əˈraʊz/','The movie aroused my curiosity deeply.'],
+  ['arrange','安排','/əˈreɪndʒ/','Arrange the flowers in a vase.'],
+  ['artificial','人工的','/ˌɑːrtɪˈfɪʃl/','Artificial flowers look very real nowadays.'],
+  ['ashamed','羞愧的','/əˈʃeɪmd/','You should be ashamed of yourself!'],
+  ['assemble','组装','/əˈsembl/','Assemble the bookshelf according to instructions.'],
+  ['assess','评估','/əˈses/','Assess the damage after the storm.'],
+  ['asset','资产；优点','/ˈæset/','Good health is your greatest asset.'],
+  ['associate','联系','/əˈsoʊʃieɪt/','People associate red with danger often.'],
+  ['assume','假设','/əˈsjuːm/','Never assume you know everything please.'],
+  ['atmosphere','气氛','/ˈætməsfɪər/','The restaurant has a romantic atmosphere.'],
+  ['attach','附上','/əˈtætʃ/','Attach a photo to your application.'],
+  ['attain','达到；获得','/əˈteɪn/','Attain a high level of proficiency.'],
+  ['attempt','尝试','/əˈtempt/','Make an attempt to solve it.'],
+  ['attend','参加','/əˈtend/','Attend classes regularly for better grades.'],
+  ['attitude','态度','/ˈætɪtjuːd/','Your attitude determines your altitude in life.'],
+  ['attract','吸引','/əˈtrækt/','Flowers attract bees to the garden.'],
+  ['authority','权威','/ɔːˈθɒrəti/','The teacher has authority in the classroom.'],
+  ['automatic','自动的','/ˌɔːtəˈmætɪk/','The door has an automatic sensor.'],
+  ['available','可用的','/əˈveɪləbl/','This book is available in the library.'],
+  ['avenue','大街；途径','/ˈævənjuː/','Explore every avenue to find a solution.'],
+  ['avoid','避免','/əˈvɔɪd/','Avoid junk food for a healthier life.'],
+  ['awake','醒着的；唤醒','/əˈweɪk/','I was awake all night thinking.'],
+  ['award','奖励','/əˈwɔːrd/','She won an award for her novel.'],
+  ['aware','意识到的','/əˈweər/','Be aware of your surroundings at night.'],
+  ['awful','糟糕的；可怕的','/ˈɔːfl/','The weather today is just awful.'],
+  ['awkward','尴尬的；笨拙的','/ˈɔːkwərd/','An awkward silence filled the entire room.'],
+  ['backward','向后的；落后的','/ˈbækwərd/','Take a backward step for safety.'],
+  ['bargain','便宜货；讨价还价','/ˈbɑːrɡən/','I got a real bargain on this.'],
+  ['barrier','障碍','/ˈbæriər/','The language barrier made communication hard.'],
+  ['beneath','在...下面','/bɪˈniːθ/','They sat beneath a large oak tree.'],
+  ['benefit','利益','/ˈbenɪfɪt/','Exercise has many health benefits for all.'],
+  ['bitter','苦的','/ˈbɪtər/','A bitter taste lingered in my mouth.'],
+  ['blame','责备','/bleɪm/','Dont take the blame for others mistakes.'],
+  ['blank','空白的','/blæŋk/','My mind went completely blank during the exam.'],
+  ['blast','爆炸；一阵','/blæst/','A blast of cold air hit us.'],
+  ['blend','混合；融合','/blend/','Blend the ingredients until smooth please.'],
+  ['bless','祝福；保佑','/bles/','God bless you and your family always.'],
+  ['block','街区；阻碍','/blɒk/','Walk two blocks and turn left.'],
+  ['bloom','开花；繁荣','/bluːm/','The roses bloom in late spring beautifully.'],
+  ['boast','夸耀；以...为豪','/boʊst/','Dont boast about your achievements so much.'],
+  ['boom','繁荣；激增','/buːm/','A baby boom after the war ended.'],
+  ['border','边界','/ˈbɔːrdər/','We crossed the border into Canada.'],
+  ['bore','使厌烦','/bɔːr/','Long speeches always bore me to tears.'],
+  ['bounce','弹起；反弹','/baʊns/','The ball bounced over the fence quickly.'],
+  ['bound','一定的','/baʊnd/','You are bound to succeed if you try.'],
+  ['brand','品牌','/brænd/','What brand of shoes do you prefer?'],
+  ['breed','品种；繁殖','/briːd/','A rare breed of dog from Japan.'],
+  ['brief','简短的；摘要','/briːf/','Give me a brief summary of the report.'],
+  ['brilliant','杰出的','/ˈbrɪliənt/','That is a brilliant idea you have.'],
+  ['broadcast','广播；播送','/ˈbrɔːdkæst/','The news will be broadcast at six.'],
+  ['budget','预算','/ˈbʌdʒɪt/','We need to cut the budget by half.'],
+  ['burden','负担','/ˈbɜːrdn/','Share the burden with your teammates today.'],
+  ['burst','爆发；破裂','/bɜːrst/','The pipe burst and water flooded everywhere.'],
+  ['calculate','计算；估计','/ˈkælkjuleɪt/','Calculate the total cost before ordering.'],
+  ['campaign','运动','/kæmˈpeɪn/','The election campaign lasted for months.'],
+  ['capable','有能力的','/ˈkeɪpəbl/','He is capable of leading the team.'],
+  ['capacity','容量','/kəˈpæsəti/','This hall has a seating capacity of 500.'],
+  ['capture','捕获','/ˈkæptʃər/','The photo captures a beautiful moment perfectly.'],
+  ['career','职业','/kəˈrɪər/','She built a successful career in medicine.'],
+  ['cautious','谨慎的','/ˈkɔːʃəs/','Be cautious when crossing the busy street.'],
+  ['cease','停止；终止','/siːs/','The fighting ceased at midnight finally.'],
+  ['celebrate','庆祝','/ˈselɪbreɪt/','Lets celebrate your birthday with a party.'],
+  ['challenge','挑战','/ˈtʃælɪndʒ/','Every challenge is an opportunity to grow.'],
+  ['champion','冠军；拥护者','/ˈtʃæmpiən/','She is the world champion in swimming.'],
+  ['channel','频道；渠道','/ˈtʃænl/','Change the TV channel please right now.'],
+  ['character','性格','/ˈkærəktər/','Honesty is part of his strong character.'],
+  ['characteristic','特征；特点','/ˌkærəktəˈrɪstɪk/','Kindness is her most notable characteristic.'],
+  ['charity','慈善；慈善机构','/ˈtʃærəti/','Donate money to charity every year.'],
+  ['charm','魅力；吸引力','/tʃɑːrm/','The old town has a unique charm.'],
+  ['chase','追逐；追赶','/tʃeɪs/','Dogs love to chase cats around.'],
+  ['cheat','欺骗；作弊','/tʃiːt/','Never cheat on an exam at school.'],
+  ['cheerful','快乐的；愉快的','/ˈtʃɪərfl/','She always has a cheerful smile on.'],
+  ['cherish','珍爱；珍惜','/ˈtʃerɪʃ/','Cherish every moment with your loved ones.'],
+  ['chief','首要的；首领','/tʃiːf/','The chief reason for his success is hard work.'],
+  ['circumstance','环境；情况','/ˈsɜːrkəmstæns/','Under no circumstance should you give up.'],
+  ['civil','公民的；文明的','/ˈsɪvl/','Civil rights should be protected for all.'],
+  ['claim','声称','/kleɪm/','He claims to have seen a UFO.'],
+  ['clarify','澄清；阐明','/ˈklærɪfaɪ/','Let me clarify what I meant earlier.'],
+  ['classic','经典的；名著','/ˈklæsɪk/','A classic novel that everyone should read.'],
+  ['classify','分类','/ˈklæsɪfaɪ/','Classify these books by subject type.'],
+  ['climate','气候','/ˈklaɪmət/','Climate change is a global concern now.'],
+  ['clue','线索；提示','/kluː/','The detective found an important clue there.'],
+  ['collapse','倒塌','/kəˈlæps/','The old bridge collapsed during the storm.'],
+  ['colleague','同事','/ˈkɒliːɡ/','I discussed the issue with a colleague today.'],
+  ['collection','收集；收藏','/kəˈlekʃn/','She has a large collection of stamps.'],
+  ['combine','结合；联合','/kəmˈbaɪn/','Combine work with pleasure whenever possible.'],
+  ['comfort','舒适；安慰','/ˈkʌmfərt/','Find comfort in music when feeling sad.'],
+  ['command','命令','/kəˈmænd/','He has a good command of English.'],
+  ['comment','评论','/ˈkɒment/','Please leave a comment below the video.'],
+  ['commerce','商业；贸易','/ˈkɒmɜːrs/','E-commerce is growing very rapidly nowadays.'],
+  ['commit','犯(罪)','/kəˈmɪt/','Commit to your goals and never quit.'],
+  ['communicate','交流','/kəˈmjuːnɪkeɪt/','Learn to communicate effectively with others.'],
+  ['community','社区','/kəˈmjuːnəti/','Our community is very close and supportive.'],
+  ['companion','同伴','/kəmˈpæniən/','A dog is a loyal companion for life.'],
+  ['compare','比较','/kəmˈpeər/','Dont compare yourself to others too much.'],
+  ['compensate','补偿；赔偿','/ˈkɒmpenseɪt/','Compensate the workers for their overtime.'],
+  ['compete','竞争','/kəmˈpiːt/','Athletes compete for the gold medal.'],
+  ['competent','有能力的；胜任的','/ˈkɒmpɪtənt/','She is a competent and reliable doctor.'],
+  ['competition','竞争；比赛','/ˌkɒmpəˈtɪʃn/','Competition in the market is very fierce.'],
+  ['complain','抱怨','/kəmˈpleɪn/','Stop complaining and start doing something positive.'],
+  ['complex','复杂的','/ˈkɒmpleks/','The problem is more complex than expected.'],
+  ['component','组成部分；部件','/kəmˈpoʊnənt/','Each component of the system is essential.'],
+  ['compose','组成；创作','/kəmˈpoʊz/','Compose a letter to your future self.'],
+  ['comprehend','理解；领会','/ˌkɒmprɪˈhend/','Can you comprehend the full meaning now?'],
+  ['concentrate','集中','/ˈkɒnsntreɪt/','Concentrate on the task at hand now.'],
+  ['concept','概念','/ˈkɒnsept/','The concept of time is fascinating to explore.'],
+  ['concern','关心','/kənˈsɜːrn/','Thank you for your concern about my health.'],
+  ['conclude','总结','/kənˈkluːd/','What can we conclude from the data?'],
+  ['concrete','具体的；混凝土','/ˈkɒŋkriːt/','Give me a concrete example to explain this.'],
+  ['conduct','行为','/kənˈdʌkt/','His conduct at the meeting was inappropriate.'],
+  ['conference','会议；讨论会','/ˈkɒnfərəns/','An international conference on climate change.'],
+  ['confess','坦白；承认','/kənˈfes/','I must confess I made a big mistake.'],
+  ['confidence','信心；信任','/ˈkɒnfɪdəns/','Have confidence in your own abilities always.'],
+  ['confirm','确认','/kənˈfɜːrm/','Please confirm your reservation by email today.'],
+  ['conflict','冲突','/ˈkɒnflɪkt/','A conflict of interest arose between them.'],
+  ['confront','面对；对抗','/kənˈfrʌnt/','Confront your fears and overcome them bravely.'],
+  ['conscious','有意识的','/ˈkɒnʃəs/','Be conscious of your impact on others.'],
+  ['consequence','后果','/ˈkɒnsɪkwəns/','Think about the consequences before you act.'],
+  ['conservative','保守的','/kənˈsɜːrvətɪv/','A conservative estimate of the total cost.'],
+  ['considerable','相当大的','/kənˈsɪdərəbl/','A considerable amount of time was wasted.'],
+  ['considerate','体贴的；考虑周到的','/kənˈsɪdərət/','Be considerate of other peoples feelings please.'],
+  ['consist','由...组成','/kənˈsɪst/','The team consists of five members total.'],
+  ['consistent','一致的；始终如一的','/kənˈsɪstənt/','Be consistent in your efforts every day.'],
+  ['constant','持续的','/ˈkɒnstənt/','Constant practice makes you perfect eventually.'],
+  ['construct','建造','/kənˈstrʌkt/','Construct a solid foundation for your career.'],
+  ['consult','咨询；请教','/kənˈsʌlt/','Consult a doctor if symptoms persist longer.'],
+  ['consume','消费','/kənˈsjuːm/','Consume less and recycle more each day.'],
+  ['contact','联系','/ˈkɒntækt/','Stay in contact with old friends always.'],
+  ['contain','包含','/kənˈteɪn/','This box contains all my childhood memories.'],
+  ['contemporary','当代的','/kənˈtemprəri/','Contemporary art can be hard to understand.'],
+  ['content','内容','/ˈkɒntent/','The content of the book was inspiring.'],
+  ['contest','比赛','/ˈkɒntest/','She won first prize in the contest.'],
+  ['context','上下文；背景','/ˈkɒntekst/','Understand the word in its full context.'],
+  ['contract','合同','/ˈkɒntrækt/','Read the contract carefully before you sign.'],
+  ['contrast','对比','/ˈkɒntrɑːst/','The contrast between the two is striking.'],
+  ['contribute','贡献','/kənˈtrɪbjuːt/','Everyone should contribute to the team effort.'],
+  ['controversial','有争议的','/ˌkɒntrəˈvɜːrʃl/','A controversial topic that divides many people.'],
+  ['convenient','方便的','/kənˈviːniənt/','Online shopping is very convenient nowadays.'],
+  ['conventional','传统的；惯例的','/kənˈvenʃənl/','Conventional wisdom is not always right.'],
+];
+
+// ===== 应用状态 =====
+const STORAGE_KEY = 'cet4_words';
+const CHECKIN_KEY = 'cet4_checkin';
+const DAILY_KEY = 'cet4_daily';
+const STATE_KEY = 'cet4_state';
+const GOAL = 30;
+
+let words = [];
+let cardIndex = 0;
+let isFlipped = false;
+let currentQuiz = null;
+let quizType = 'choice';
+let quizScore = 0;
+let quizTotal = 0;
+let todayStudied = 0;
+let checkedInToday = false;
+
+// ===== 数据加载 =====
+function loadWords() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    words = JSON.parse(saved);
+  } else {
+    words = CET4.map(w => ({ en: w[0], zh: w[1], phonetic: w[2], example: w[3], level: 0 }));
+    saveWords();
+  }
+}
+function saveWords() { localStorage.setItem(STORAGE_KEY, JSON.stringify(words)); }
+
+function getToday() { return new Date().toISOString().slice(0, 10); }
+
+function loadCheckins() {
+  const saved = localStorage.getItem(CHECKIN_KEY);
+  return saved ? JSON.parse(saved) : [];
+}
+function saveCheckins(arr) { localStorage.setItem(CHECKIN_KEY, JSON.stringify(arr)); }
+
+function loadDaily() {
+  const saved = localStorage.getItem(DAILY_KEY);
+  if (saved) {
+    const d = JSON.parse(saved);
+    if (d.date !== getToday()) return { date: getToday(), count: 0 };
+    return d;
+  }
+  return { date: getToday(), count: 0 };
+}
+function saveDaily(d) { localStorage.setItem(DAILY_KEY, JSON.stringify(d)); }
+
+function loadState() {
+  const saved = localStorage.getItem(STATE_KEY);
+  if (saved) {
+    const s = JSON.parse(saved);
+    cardIndex = Math.min(s.cardIndex || 0, Math.max(0, words.length - 1));
+    quizType = s.quizType || 'choice';
+  }
+}
+function saveState() { localStorage.setItem(STATE_KEY, JSON.stringify({ cardIndex, quizType })); }
+
+// ===== 打卡系统 =====
+function doCheckin() {
+  const checkins = loadCheckins();
+  const today = getToday();
+  if (checkins.includes(today)) return;
+  checkins.push(today);
+  saveCheckins(checkins);
+  checkedInToday = true;
+  updateStreakUI();
+  updateCalendar();
+  const btn = document.getElementById('btnCheckin');
+  btn.textContent = '✅ 已打卡';
+  btn.classList.add('done');
+}
+
+function getStreak(checkins) {
+  if (checkins.length === 0) return { streak: 0, total: 0 };
+  const sorted = [...checkins].sort().reverse();
+  let streak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let d = new Date(today);
+
+  while (true) {
+    const ds = d.toISOString().slice(0, 10);
+    if (sorted.includes(ds)) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  // If not checked in today, the streak counts from yesterday
+  if (!checkins.includes(getToday())) {
+    streak = 0;
+    d = new Date(today);
+    d.setDate(d.getDate() - 1);
+    while (true) {
+      const ds = d.toISOString().slice(0, 10);
+      if (sorted.includes(ds)) {
+        streak++;
+        d.setDate(d.getDate() - 1);
+      } else break;
+    }
+  }
+
+  let maxStreak = 0, cur = 0;
+  const allSorted = [...checkins].sort();
+  for (let i = 0; i < allSorted.length; i++) {
+    if (i === 0) { cur = 1; }
+    else {
+      const prev = new Date(allSorted[i - 1]);
+      const curr = new Date(allSorted[i]);
+      if ((curr - prev) / 86400000 === 1) cur++;
+      else cur = 1;
+    }
+    maxStreak = Math.max(maxStreak, cur);
+  }
+
+  return { streak, total: checkins.length, maxStreak };
+}
+
+function updateStreakUI() {
+  const checkins = loadCheckins();
+  const { streak, total, maxStreak } = getStreak(checkins);
+  const daily = loadDaily();
+  todayStudied = daily.count;
+  checkedInToday = checkins.includes(getToday());
+
+  document.getElementById('streakDays').textContent = streak;
+  document.getElementById('todayCount').textContent = todayStudied;
+  document.getElementById('totalDays').textContent = total;
+
+  const pct = Math.min(100, Math.round((todayStudied / GOAL) * 100));
+  document.getElementById('progressRing').style.setProperty('--progress', pct + '%');
+  document.getElementById('progressText').textContent = todayStudied + '/' + GOAL;
+  document.getElementById('cardTodayCount').textContent = todayStudied;
+
+  const sub = document.getElementById('progressSub');
+  if (todayStudied >= GOAL) sub.textContent = '今日目标达成！真棒！';
+  else if (todayStudied > 0) sub.textContent = '继续加油，你可以的！';
+  else sub.textContent = '还没开始，加油！';
+
+  const btn = document.getElementById('btnCheckin');
+  if (checkedInToday) {
+    btn.textContent = '✅ 已打卡';
+    btn.classList.add('done');
+  } else {
+    btn.textContent = '✅ 打卡';
+    btn.classList.remove('done');
+  }
+
+  document.getElementById('csTotal').textContent = total;
+  document.getElementById('csStreak').textContent = maxStreak;
+  document.getElementById('csMonth').textContent =
+    checkins.filter(d => d.startsWith(getToday().slice(0, 7))).length;
+}
+
+// ===== 日历 =====
+let calYear, calMonth;
+function initCalendar() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth() + 1;
+}
+
+function updateCalendar() {
+  const checkins = loadCheckins();
+  const today = getToday();
+
+  document.getElementById('monthLabel').textContent = calYear + '年 ' + calMonth + '月';
+
+  const firstDay = new Date(calYear, calMonth - 1, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+  const daysInPrev = new Date(calYear, calMonth - 1, 0).getDate();
+
+  const labels = ['日', '一', '二', '三', '四', '五', '六'];
+  let html = labels.map(l => `<div class="day-label">${l}</div>`).join('');
+
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = daysInPrev - i;
+    const ds = `${calYear}-${String(calMonth - 1 || 12).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    html += `<div class="day other${checkins.includes(ds) ? ' checked' : ''}">${d}</div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${calYear}-${String(calMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    let cls = 'day';
+    if (checkins.includes(ds)) cls += ' checked';
+    if (ds === today) cls += ' today';
+    else if (ds > today) cls += ' future';
+    html += `<div class="${cls}">${d}</div>`;
+  }
+
+  const remaining = 42 - (firstDay + daysInMonth);
+  for (let d = 1; d <= remaining; d++) {
+    html += `<div class="day other">${d}</div>`;
+  }
+
+  document.getElementById('calendarGrid').innerHTML = html;
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth > 12) { calMonth = 1; calYear++; }
+  if (calMonth < 1) { calMonth = 12; calYear--; }
+  updateCalendar();
+}
+
+// ===== 闪卡学习 =====
+function showCard() {
+  if (words.length === 0) return;
+  cardIndex = Math.min(cardIndex, words.length - 1);
+  const w = words[cardIndex];
+  document.getElementById('cardWord').textContent = w.en;
+  document.getElementById('cardPhonetic').textContent = w.phonetic || '';
+  document.getElementById('cardMeaning').textContent = w.zh;
+  document.getElementById('cardExample').textContent = w.example ? '"' + w.example + '"' : '';
+  isFlipped = false;
+  document.getElementById('flashcard').classList.remove('flipped');
+  saveState();
+}
+
+function flipCard() {
+  if (words.length === 0) return;
+  isFlipped = !isFlipped;
+  document.getElementById('flashcard').classList.toggle('flipped', isFlipped);
+}
+
+function rateWord(rating) {
+  if (words.length === 0) return;
+  const w = words[cardIndex];
+  if (rating >= 2) w.level = Math.min(3, w.level + 1);
+  else if (rating === 0) w.level = Math.max(0, w.level - 1);
+  saveWords();
+
+  // 统计今日学习
+  const daily = loadDaily();
+  daily.count = Math.min(daily.count + 1, GOAL);
+  saveDaily(daily);
+  todayStudied = daily.count;
+
+  updateStreakUI();
+
+  // 自动打卡
+  if (todayStudied >= GOAL && !checkedInToday) {
+    doCheckin();
+  }
+
+  // 优先未掌握的单词
+  const pool = words.filter(w => w.level < 2);
+  if (pool.length > 0) {
+    cardIndex = words.indexOf(pool[Math.floor(Math.random() * pool.length)]);
+  } else {
+    cardIndex = Math.floor(Math.random() * words.length);
+  }
+  showCard();
+}
+
+function nextCard(dir) {
+  if (words.length === 0) return;
+  cardIndex = (cardIndex + dir + words.length) % words.length;
+  showCard();
+}
+
+// ===== 测验 =====
+function switchQuizType(type) {
+  quizType = type;
+  quizScore = 0;
+  quizTotal = 0;
+  document.getElementById('quizScore').textContent = '0';
+  document.getElementById('quizTotal').textContent = '0';
+  document.querySelectorAll('.quiz-type-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-qtype="${type}"]`).classList.add('active');
+  saveState();
+  document.getElementById('quizInput').style.display = type === 'spell' ? 'block' : 'none';
+  document.getElementById('quizOptions').style.display = type === 'spell' ? 'none' : 'flex';
+  startQuiz();
+}
+
+function startQuiz() {
+  if (words.length < 4 && quizType !== 'spell') {
+    document.getElementById('quizWord').textContent = '至少需要4个单词';
+    return;
+  }
+  document.getElementById('quizResult').textContent = '';
+  document.getElementById('quizNext').style.display = 'none';
+
+  const correctIdx = Math.floor(Math.random() * words.length);
+  const correct = words[correctIdx];
+
+  if (quizType === 'choice') {
+    // 英译中
+    const others = words.filter((_, i) => i !== correctIdx)
+      .sort(() => Math.random() - .5).slice(0, 3);
+    const options = [
+      { zh: correct.zh, correct: true },
+      ...others.map(w => ({ zh: w.zh, correct: false }))
+    ].sort(() => Math.random() - .5);
+    currentQuiz = { word: correct.en, options };
+    document.getElementById('quizWord').textContent = correct.en;
+    document.getElementById('quizOptions').innerHTML = options.map((o, i) =>
+      `<button class="quiz-option" onclick="answerQuiz(${i})">${'ABCD'[i]}. ${o.zh}</button>`
+    ).join('');
+  } else if (quizType === 'reverse') {
+    // 中译英
+    const others = words.filter((_, i) => i !== correctIdx)
+      .sort(() => Math.random() - .5).slice(0, 3);
+    const options = [
+      { en: correct.en, correct: true },
+      ...others.map(w => ({ en: w.en, correct: false }))
+    ].sort(() => Math.random() - .5);
+    currentQuiz = { word: correct.zh, options };
+    document.getElementById('quizWord').textContent = correct.zh;
+    document.getElementById('quizOptions').innerHTML = options.map((o, i) =>
+      `<button class="quiz-option" onclick="answerQuiz(${i})">${'ABCD'[i]}. ${o.en}</button>`
+    ).join('');
+  } else {
+    // 拼写
+    currentQuiz = { word: correct.en, answer: correct.en, hint: correct.zh };
+    document.getElementById('quizWord').textContent = '请拼写：' + correct.zh;
+    document.getElementById('quizInput').value = '';
+    document.getElementById('quizInput').focus();
+  }
+}
+
+function answerQuiz(index) {
+  if (!currentQuiz) return;
+  const correct = currentQuiz.options[index].correct;
+  const buttons = document.querySelectorAll('.quiz-option');
+  buttons.forEach((btn, i) => {
+    btn.disabled = true;
+    if (currentQuiz.options[i].correct) btn.classList.add('correct');
+    else if (i === index) btn.classList.add('wrong');
+  });
+  quizTotal++;
+  if (correct) quizScore++;
+  document.getElementById('quizScore').textContent = quizScore;
+  document.getElementById('quizTotal').textContent = quizTotal;
+  document.getElementById('quizResult').textContent = correct ? '✅ 正确！' : '❌ 错误！';
+  document.getElementById('quizResult').style.color = correct ? 'var(--success)' : 'var(--danger)';
+  document.getElementById('quizNext').style.display = 'block';
+
+  if (correct) {
+    const daily = loadDaily();
+    daily.count = Math.min(daily.count + 1, GOAL);
+    saveDaily(daily);
+    updateStreakUI();
+    if (todayStudied >= GOAL && !checkedInToday) doCheckin();
+  }
+}
+
+function checkSpelling() {
+  const input = document.getElementById('quizInput').value.trim();
+  if (!input) return;
+  quizTotal++;
+  const correct = input.toLowerCase() === currentQuiz.answer.toLowerCase();
+  if (correct) quizScore++;
+  document.getElementById('quizScore').textContent = quizScore;
+  document.getElementById('quizTotal').textContent = quizTotal;
+  document.getElementById('quizResult').textContent = correct
+    ? '✅ 正确！' : '❌ 错误！正确答案是：' + currentQuiz.answer;
+  document.getElementById('quizResult').style.color = correct ? 'var(--success)' : 'var(--danger)';
+  document.getElementById('quizNext').style.display = 'block';
+  document.getElementById('quizInput').disabled = true;
+
+  if (correct) {
+    const daily = loadDaily();
+    daily.count = Math.min(daily.count + 1, GOAL);
+    saveDaily(daily);
+    updateStreakUI();
+    if (todayStudied >= GOAL && !checkedInToday) doCheckin();
+  }
+}
+
+function nextQuiz() {
+  document.getElementById('quizInput').disabled = false;
+  startQuiz();
+}
+
+document.getElementById('quizInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkSpelling();
+});
+
+// ===== 单词表 =====
+function getLevelLabel(level) {
+  if (level >= 2) return { text: '已掌握', cls: 'level-mastered' };
+  if (level === 1) return { text: '学习中', cls: 'level-learning' };
+  return { text: '新词', cls: 'level-new' };
+}
+
+function renderWordList() {
+  const query = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const lvlFilter = document.getElementById('levelFilter')?.value || 'all';
+
+  let filtered = words;
+  if (query) filtered = filtered.filter(w => w.en.toLowerCase().includes(query) || w.zh.includes(query));
+  if (lvlFilter === 'new') filtered = filtered.filter(w => w.level === 0);
+  if (lvlFilter === 'learning') filtered = filtered.filter(w => w.level === 1);
+  if (lvlFilter === 'mastered') filtered = filtered.filter(w => w.level >= 2);
+
+  const list = document.getElementById('wordList');
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state">📭<br>${query ? '没有匹配的单词' : '还没有单词'}</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(w => {
+    const lvl = getLevelLabel(w.level);
+    const idx = words.indexOf(w);
+    return `<li class="word-item">
+      <span class="eng">${w.en}</span>
+      <span class="chn">${w.zh}</span>
+      <span class="level ${lvl.cls}">${lvl.text}</span>
+      <button class="del-btn" onclick="deleteWord(${idx})">×</button>
+    </li>`;
+  }).join('');
+}
+
+function deleteWord(idx) {
+  if (words.length <= 1) { alert('至少保留一个单词！'); return; }
+  if (confirm('确定删除 "' + words[idx].en + '" ？')) {
+    words.splice(idx, 1);
+    if (cardIndex >= words.length) cardIndex = words.length - 1;
+    saveWords(); showCard(); renderWordList(); updateStreakUI();
+  }
+}
+
+function showAddForm() {
+  document.getElementById('addForm').style.display = 'flex';
+  document.getElementById('addEnglish').focus();
+}
+function hideAddForm() {
+  document.getElementById('addForm').style.display = 'none';
+  document.getElementById('addEnglish').value = '';
+  document.getElementById('addChinese').value = '';
+  document.getElementById('addPhonetic').value = '';
+  document.getElementById('addExample').value = '';
+}
+function addWord() {
+  const en = document.getElementById('addEnglish').value.trim();
+  const zh = document.getElementById('addChinese').value.trim();
+  if (!en || !zh) { alert('请填写英文和中文'); return; }
+  if (words.some(w => w.en.toLowerCase() === en.toLowerCase())) { alert('已存在！'); return; }
+  words.push({
+    en, zh,
+    phonetic: document.getElementById('addPhonetic').value.trim(),
+    example: document.getElementById('addExample').value.trim(),
+    level: 0
+  });
+  saveWords(); renderWordList(); hideAddForm(); updateStreakUI();
+}
+
+// ===== 标签切换 =====
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+    if (tab.dataset.panel === 'quiz') startQuiz();
+    if (tab.dataset.panel === 'list') renderWordList();
+    if (tab.dataset.panel === 'study') showCard();
+    if (tab.dataset.panel === 'checkin') updateCalendar();
+  });
+});
+
+// Quiz type switching
+document.querySelectorAll('.quiz-type-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchQuizType(btn.dataset.qtype));
+});
+
+document.getElementById('addChinese')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') addWord();
+});
+
+// 键盘快捷键
+document.addEventListener('keydown', e => {
+  const active = document.querySelector('.panel.active');
+  if (!active) return;
+  if (active.id === 'panel-study') {
+    if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); flipCard(); }
+    if (e.key === 'ArrowLeft') nextCard(-1);
+    if (e.key === 'ArrowRight') nextCard(1);
+    if (e.key === '1') rateWord(0);
+    if (e.key === '2') rateWord(1);
+    if (e.key === '3') rateWord(2);
+    if (e.key === '4') rateWord(3);
+  }
+});
+
+// ===== 视频功能 =====
+const CURATED_VIDEOS = {
+  context: 'BV1f24y1G7T5',   // 语境中暴涨词汇量
+  core: 'BV1gyGD6bE3r',      // 四级历年真题核心1000词
+};
+
+let currentVideoType = 'context';
+let videoVisible = false;
+
+function toggleVideo() {
+  videoVisible = !videoVisible;
+  const panel = document.getElementById('videoPanel');
+  panel.classList.toggle('show', videoVisible);
+  if (videoVisible) loadVideo();
+}
+
+function switchVideo(type, btn) {
+  currentVideoType = type;
+  document.querySelectorAll('.video-search-row button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  loadVideo();
+}
+
+function searchB站() {
+  const word = words.length > 0 ? words[cardIndex].en : 'apple';
+  window.open('https://search.bilibili.com/all?keyword=' + encodeURIComponent(word + ' 英语单词'), '_blank');
+}
+
+function loadVideo() {
+  const iframe = document.querySelector('#videoPlayer iframe');
+  const bvid = CURATED_VIDEOS[currentVideoType];
+  if (bvid) {
+    iframe.src = 'https://player.bilibili.com/player.html?bvid=' + bvid + '&page=1&autoplay=0&high_quality=1&danmaku=0';
+  }
+}
+
+// ===== 初始化 =====
+loadWords();
+loadState();
+initCalendar();
+updateStreakUI();
+updateCalendar();
+showCard();
+renderWordList();
+</script>
+</body>
+</html>

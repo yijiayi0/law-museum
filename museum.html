@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字法治文化馆</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{overflow:hidden;background:#1a1a2e;font-family:'Microsoft YaHei','PingFang SC',sans-serif;user-select:none;-webkit-user-select:none}
+canvas{display:block}
+
+#ui-layer{position:fixed;inset:0;pointer-events:none;z-index:10}
+#ui-layer>*{pointer-events:auto}
+
+/* 顶部标题 */
+#title-banner{
+  position:absolute;top:20px;left:50%;transform:translateX(-50%);
+  background:rgba(20,15,10,.88);backdrop-filter:blur(8px);
+  padding:14px 32px;border-radius:8px;text-align:center;
+  border:1px solid #c9a96e;border-top:3px solid #8b1a1a;
+}
+#title-banner h1{
+  font-size:1.6rem;font-weight:700;letter-spacing:4px;
+  background:linear-gradient(180deg,#f0d78c 0%,#c9a96e 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+#title-banner .sub{color:#a09080;font-size:.7rem;margin-top:2px}
+
+/* 底部提示 */
+#instructions{
+  position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+  background:rgba(20,15,10,.78);color:#c9a96e;padding:8px 20px;
+  border-radius:20px;font-size:.72rem;letter-spacing:1px;
+}
+
+/* 区域标签 */
+#zone-label{
+  position:absolute;top:120px;right:20px;
+  background:rgba(139,26,26,.85);color:#f0d78c;
+  padding:8px 16px;border-radius:6px;font-size:.8rem;
+  font-weight:600;opacity:0;transition:opacity .5s;
+}
+#zone-label.show{opacity:1}
+
+/* 信息弹窗 */
+#info-modal{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.9);
+  width:90%;max-width:520px;background:rgba(30,22,15,.96);
+  backdrop-filter:blur(16px);border-radius:12px;padding:28px 24px;
+  border:1px solid #c9a96e;border-top:4px solid #8b1a1a;
+  opacity:0;visibility:hidden;transition:all .3s ease-out;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+#info-modal.show{opacity:1;visibility:visible;transform:translate(-50%,-50%) scale(1)}
+#info-modal .zone-badge{
+  display:inline-block;background:#8b1a1a;color:#f0d78c;padding:3px 12px;
+  border-radius:12px;font-size:.7rem;margin-bottom:10px;
+}
+#info-modal h2{color:#f0d78c;font-size:1.2rem;margin-bottom:6px}
+#info-modal .subtitle{color:#a09080;font-size:.78rem;margin-bottom:14px}
+#info-modal .desc{color:#d0c8b8;font-size:.85rem;line-height:1.7}
+#info-modal .close-btn{
+  position:absolute;top:12px;right:16px;background:none;border:none;
+  color:#a09080;font-size:1.3rem;cursor:pointer;transition:color .2s;
+}
+#info-modal .close-btn:hover{color:#f0d78c}
+
+/* 加载界面 */
+#loading{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;background:#1a1a2e;
+  z-index:100;transition:opacity .6s;
+}
+#loading.hidden{opacity:0;pointer-events:none}
+#loading .ring{
+  width:50px;height:50px;border:3px solid #c9a96e;
+  border-top-color:transparent;border-radius:50%;
+  animation:spin 1s linear infinite;margin-bottom:16px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{color:#c9a96e;font-size:.85rem}
+</style>
+</head>
+<body>
+
+<!-- UI覆盖层 -->
+<div id="ui-layer">
+  <div id="title-banner">
+    <h1>数字法治文化馆</h1>
+    <div class="sub">Digital Rule of Law Culture Museum</div>
+  </div>
+  <div id="zone-label"></div>
+  <div id="instructions">🖱 拖动旋转视角 | 滚轮缩放 | 点击展品查看详情 | F 切换第一人称</div>
+  <div id="info-modal">
+    <button class="close-btn" onclick="closeModal()">✕</button>
+    <div class="zone-badge" id="modal-zone"></div>
+    <h2 id="modal-title"></h2>
+    <div class="subtitle" id="modal-sub"></div>
+    <div class="desc" id="modal-desc"></div>
+  </div>
+  <div id="loading">
+    <div class="ring"></div>
+    <p>数字法治文化馆加载中...</p>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ===== 展品数据 =====
+const EXHIBITS = [
+  // Zone 1: 法治历程 (后墙)
+  { id:'h1', zone:'法治历程', title:'夏商周：礼法起源', sub:'约公元前2070年-公元前256年',
+    desc:'夏朝制定《禹刑》，商朝有《汤刑》，周朝确立"礼法合一"的治理体系。"礼"规范社会等级与行为准则，"刑"惩罚违礼者。"明德慎罚"成为中国古代法治思想的源头，对后世影响深远。',
+    pos:[-12,2.8,-12.8], rot:[0,0.05,0] },
+  { id:'h2', zone:'法治历程', title:'秦：法家思想与秦律', sub:'公元前221年-公元前206年',
+    desc:'商鞅变法"徙木立信"确立法律权威。秦统一六国后颁行《秦律》，"以法为教、以吏为师"。法家主张"不别亲疏，不殊贵贱，一断于法"，开创了成文法治理国家的先河。',
+    pos:[-7,2.8,-12.8], rot:[0,0.05,0] },
+  { id:'h3', zone:'法治历程', title:'汉唐：律令格式', sub:'公元前206年-公元907年',
+    desc:'汉承秦制，萧何制定《九章律》。唐代编撰《唐律疏议》，是中国古代最完备的法典，涵盖502条律文，体系严谨，影响东亚诸国法律体系，"一准乎礼"成为后世立法典范。',
+    pos:[-2,2.8,-12.8], rot:[0,0.05,0] },
+  { id:'h4', zone:'法治历程', title:'宋元明清：法典沿革', sub:'公元960年-1912年',
+    desc:'宋代《宋刑统》承袭唐律并增补敕令。元代融合蒙古习惯法。明代《大明律》以六部分类，体例创新。清代《大清律例》集历代法典大成，律例并行，"以例辅律"。"五朝会典"记录行政法规范。',
+    pos:[3,2.8,-12.8], rot:[0,-0.05,0] },
+  { id:'h5', zone:'法治历程', title:'近代：西法东渐', sub:'1840年-1949年',
+    desc:'鸦片战争后，西方法律思想大量传入中国。沈家本主持清末修律，引进大陆法系理念。中华民国时期制定"六法全书"，初步建立近代法律体系。法律现代化进程在战乱中艰难推进。',
+    pos:[8,2.8,-12.8], rot:[0,-0.05,0] },
+  { id:'h6', zone:'法治历程', title:'当代：中国特色社会主义法治', sub:'1949年至今',
+    desc:'1954年制定新中国第一部宪法。改革开放后，"依法治国"写入宪法修正案。2011年宣告中国特色社会主义法律体系形成。2020年《民法典》诞生。"全面依法治国"成为国家治理基本方略。',
+    pos:[13,2.8,-12.8], rot:[0,-0.05,0] },
+
+  // Zone 2: 经典案例 (左墙)
+  { id:'c1', zone:'经典案例', title:'獬豸断案', sub:'上古神话传说',
+    desc:'獬豸(xiè zhì)是中国古代神话中的神兽，能辨是非曲直，见人争斗即以角触不直者。历代法官以獬豸冠为官帽装饰，象征司法公正。"法"字的古体"灋"即包含"廌"(獬豸)，寓意"平之如水，触不直者"。',
+    pos:[-18.8,3.2,-8], rot:[0,1.57,0] },
+  { id:'c2', zone:'经典案例', title:'狄仁杰断案', sub:'唐朝·武周时期',
+    desc:'狄仁杰任大理寺丞期间，一年内判决积压案件一万七千余件，无一人冤诉。他断案如神、不畏权贵，以"法理"服人。《大唐新语》载其"摘发奸伏"、"剖断如流"，成为中国古代公正司法的典范。',
+    pos:[-18.8,3.2,-2], rot:[0,1.57,0] },
+  { id:'c3', zone:'经典案例', title:'马锡五审判方式', sub:'1940年代·陕甘宁边区',
+    desc:'马锡五创造"调查研究、调解为主、就地解决"的审判方式。他深入田间地头，依靠群众查明事实，尊重民间习惯与善良风俗，将法律效果与社会效果统一，被边区群众誉为"马青天"。"马锡五审判方式"至今仍是基层司法的重要参考。',
+    pos:[-18.8,3.2,4], rot:[0,1.57,0] },
+
+  // Zone 3: 法律典籍 (右墙)
+  { id:'b1', zone:'法律典籍', title:'《唐律疏议》', sub:'公元653年颁行',
+    desc:'由长孙无忌等奉敕编撰，计30卷，502条。分《名例》《卫禁》《职制》《户婚》《厩库》《擅兴》《贼盗》《斗讼》《诈伪》《杂律》《捕亡》《断狱》十二篇。体系完备，是中华法系的代表性法典。',
+    pos:[18.8,3.2,-6], rot:[0,-1.57,0] },
+  { id:'b2', zone:'法律典籍', title:'《中华人民共和国民法典》', sub:'2021年1月1日起施行',
+    desc:'新中国第一部以"法典"命名的法律，共7编1260条。包括总则、物权、合同、人格权、婚姻家庭、继承、侵权责任及附则。被称为"社会生活的百科全书"，标志着中国特色社会主义法律体系进一步完善。',
+    pos:[18.8,3.2,0], rot:[0,-1.57,0] },
+  { id:'b3', zone:'法律典籍', title:'《中华人民共和国宪法》', sub:'1982年通过，历经五次修正',
+    desc:'国家的根本大法，规定我国的国家性质、根本制度和根本任务。全文共四章143条，明确了公民的基本权利和义务、国家机构的组织与职权。"依法治国"于1999年入宪，确立社会主义法治原则。',
+    pos:[18.8,3.2,6], rot:[0,-1.57,0] },
+
+  // Zone 4: 法治成就 (前墙/入口两侧)
+  { id:'a1', zone:'法治成就', title:'全面依法治国', sub:'新时代基本方略',
+    desc:'坚持依法治国、依法执政、依法行政共同推进，坚持法治国家、法治政府、法治社会一体建设。科学立法、严格执法、公正司法、全民守法——"新十六字方针"引领法治中国建设进入快车道。',
+    pos:[-8,2.8,13.5], rot:[0,3.12,0] },
+  { id:'a2', zone:'法治成就', title:'司法体制改革', sub:'2014年至今',
+    desc:'实行法官检察官员额制改革，推进以审判为中心的刑事诉讼制度改革，建立巡回法庭制度，设立跨行政区划法院。全面落实司法责任制，"让审理者裁判、由裁判者负责"成为司法新常态。',
+    pos:[0,2.8,13.5], rot:[0,3.12,0] },
+  { id:'a3', zone:'法治成就', title:'智慧法院建设', sub:'数字化司法创新',
+    desc:'全国法院建成"人民法院在线服务"平台，实现网上立案、在线庭审、电子送达。区块链存证、AI辅助审判、大数据类案检索等技术应用，让"数据多跑路、群众少跑腿"，推动司法服务现代化。',
+    pos:[8,2.8,13.5], rot:[0,3.12,0] },
+];
+
+// ===== Three.js 初始化 =====
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#1a1a2e');
+scene.fog = new THREE.Fog('#1a1a2e', 15, 45);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 60);
+camera.position.set(0, 4, 18);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.appendChild(renderer.domElement);
+
+// ===== 灯光 =====
+scene.add(new THREE.AmbientLight('#fff5e6', 0.5));
+
+const sunLight = new THREE.DirectionalLight('#ffffff', 1.2);
+sunLight.position.set(5, 14, 0);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(1024, 1024);
+sunLight.shadow.camera.near = 0.5;
+sunLight.shadow.camera.far = 50;
+sunLight.shadow.camera.left = -25;
+sunLight.shadow.camera.right = 25;
+sunLight.shadow.camera.top = 20;
+sunLight.shadow.camera.bottom = -20;
+scene.add(sunLight);
+
+const spot1 = new THREE.SpotLight('#ffd700', 30);
+spot1.position.set(0, 8.5, 0);
+spot1.angle = 0.5;
+spot1.penumbra = 0.3;
+spot1.decay = 1.5;
+spot1.distance = 20;
+spot1.castShadow = true;
+scene.add(spot1);
+
+const spot2 = new THREE.SpotLight('#ffd700', 15);
+spot2.position.set(0, 7, -8);
+spot2.angle = 0.7;
+spot2.penumbra = 0.5;
+spot2.decay = 1.5;
+spot2.distance = 18;
+scene.add(spot2);
+
+const pointLight = new THREE.PointLight('#ff9944', 8, 12);
+pointLight.position.set(0, 3, 14);
+scene.add(pointLight);
+
+// ===== 材质工厂 =====
+const matWood = new THREE.MeshStandardMaterial({ color:'#4a3728', roughness:0.75, metalness:0.05 });
+const matFloor = new THREE.MeshStandardMaterial({ color:'#f5f0e8', roughness:0.3, metalness:0.1 });
+const matCeiling = new THREE.MeshStandardMaterial({ color:'#2a2520', roughness:0.9 });
+const matRed = new THREE.MeshStandardMaterial({ color:'#8b1a1a', roughness:0.4, metalness:0.2 });
+const matGold = new THREE.MeshStandardMaterial({ color:'#c9a96e', roughness:0.25, metalness:0.7 });
+const matBrass = new THREE.MeshStandardMaterial({ color:'#c9a96e', roughness:0.2, metalness:0.8 });
+const matDarkWood = new THREE.MeshStandardMaterial({ color:'#3a2510', roughness:0.8 });
+const matMarble = new THREE.MeshStandardMaterial({ color:'#3a3030', roughness:0.3, metalness:0.15 });
+const matParchment = new THREE.MeshStandardMaterial({ color:'#f5e6c8', roughness:0.6 });
+
+const allInteractive = [];
+
+// ===== 辅助：Canvas纹理生成 =====
+function makePanelTexture(title, body, color) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 700;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#f5e6c8'; ctx.fillRect(0,0,512,700);
+  ctx.strokeStyle = color || '#8b1a1a'; ctx.lineWidth = 10;
+  ctx.strokeRect(8,8,496,684);
+  ctx.fillStyle = color || '#8b1a1a'; ctx.fillRect(0,0,512,60);
+  ctx.fillStyle = '#f0d78c'; ctx.font = 'bold 36px "KaiTi","STKaiti","SimSun",serif';
+  ctx.textAlign = 'center'; ctx.fillText(title, 256, 44);
+  ctx.fillStyle = '#3a3028'; ctx.font = '20px "Microsoft YaHei","PingFang SC",sans-serif';
+  const lines = body.split('\n');
+  lines.forEach((l, i) => { ctx.fillText(l, 256, 110 + i * 30); });
+  ctx.strokeStyle = '#c9a96e'; ctx.lineWidth = 3;
+  ctx.strokeRect(20,660,472,25);
+  return new THREE.CanvasTexture(c);
+}
+
+function makeBookCover(title, color) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 360;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color || '#8b1a1a'; ctx.fillRect(0,0,256,360);
+  ctx.strokeStyle = '#c9a96e'; ctx.lineWidth = 6;
+  ctx.strokeRect(10,10,236,340);
+  ctx.fillStyle = '#c9a96e'; ctx.fillRect(10,60,236,4);
+  ctx.fillStyle = '#f0d78c'; ctx.font = 'bold 28px "KaiTi","STKaiti","SimSun",serif';
+  ctx.textAlign = 'center';
+  const chars = title.split('');
+  chars.forEach((ch, i) => { ctx.fillText(ch, 128, 140 + i * 40); });
+  return new THREE.CanvasTexture(c);
+}
+
+function makeFloorTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 384;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#f5f0e8'; ctx.fillRect(0,0,512,384);
+  ctx.strokeStyle = '#e8e0d0'; ctx.lineWidth = 1;
+  for (let x = 0; x < 512; x += 64) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,384); ctx.stroke(); }
+  for (let y = 0; y < 384; y += 64) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(512,y); ctx.stroke(); }
+  ctx.strokeStyle = '#ddd5c5'; ctx.lineWidth = 3;
+  ctx.strokeRect(0,0,512,384);
+  return c;
+}
+
+// ===== 博物馆结构 =====
+// 地板
+const floorGeo = new THREE.PlaneGeometry(40, 30);
+const floorCanvas = makeFloorTexture();
+floorCanvas.wrapS = floorCanvas.wrapT = THREE.RepeatWrapping;
+floorCanvas.repeat.set(5, 4);
+const floorMat = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(makeFloorTexture()), roughness:0.35, metalness:0.05 });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// 天花板
+const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(40, 30), matCeiling);
+ceiling.rotation.x = Math.PI/2; ceiling.position.y = 9;
+scene.add(ceiling);
+
+// 墙壁
+function makeWall(w, h, d, x, y, z) {
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), matWood);
+  wall.position.set(x, y, z); wall.receiveShadow = true; wall.castShadow = true;
+  scene.add(wall); return wall;
+}
+makeWall(40, 9, 0.6, 0, 4.5, -14.7);
+makeWall(40, 9, 0.6, 0, 4.5, 14.7);
+makeWall(0.6, 9, 29, -19.7, 4.5, 0);
+makeWall(0.6, 9, 29, 19.7, 4.5, 0);
+
+// 柱子
+function makePillar(x, z) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 8.8, 16), matRed);
+  body.position.y = 4.4; body.castShadow = true;
+  g.add(body);
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.25, 1.1), matGold);
+  cap.position.y = 8.8; g.add(cap);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, 0.4, 16), matMarble);
+  base.position.y = 0.2; g.add(base);
+  g.position.set(x, 0, z); scene.add(g);
+}
+const pillarPositions = [[-18,-13],[18,-13],[-18,13],[18,13],[-18,0],[18,0]];
+pillarPositions.forEach(([x,z]) => makePillar(x, z));
+
+// 入口拱门
+function makeArch(x, y, z, ry) {
+  const g = new THREE.Group();
+  const left = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.5, 1), matDarkWood);
+  left.position.set(-1.5, 1.75, 0); g.add(left);
+  const right = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.5, 1), matDarkWood);
+  right.position.set(1.5, 1.75, 0); g.add(right);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.5, 1), matDarkWood);
+  top.position.set(0, 3.5, 0); g.add(top);
+  const archRing = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.12, 8, 16, Math.PI), matGold);
+  archRing.position.set(0, 3.5, 0.52); g.add(archRing);
+  g.position.set(x, y, z); g.rotation.y = ry; scene.add(g);
+}
+makeArch(0, 0, 14.5, 0);
+
+// ===== Zone 1: 法治历程 (后墙) 展示板 + 3D卷轴=====
+function createPanel(x, y, z, ry, exhibitData) {
+  const g = new THREE.Group();
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(2.6, 4.2, 0.15), matGold);
+  frame.position.z = -0.08; g.add(frame);
+  const tex = makePanelTexture(exhibitData.title, exhibitData.desc.slice(0,80), '#8b1a1a');
+  const board = new THREE.Mesh(new THREE.BoxGeometry(2.3, 3.8, 0.12), new THREE.MeshStandardMaterial({ map:tex, roughness:0.5 }));
+  board.position.z = 0.04; g.add(board);
+  g.position.set(x, y, z); g.rotation.y = ry;
+  board.userData = exhibitData;
+  allInteractive.push(board);
+  scene.add(g);
+  return g;
+}
+
+EXHIBITS.forEach(ex => createPanel(...ex.pos, ex.rot[1], ex));
+
+// 3D 卷轴（Zone1前）
+function makeScroll(x, y, z) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 2.5, 16), matParchment);
+  body.rotation.z = Math.PI/2; g.add(body);
+  const cap1 = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.3, 16), matGold);
+  cap1.position.x = -1.25; g.add(cap1);
+  const cap2 = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.3, 16), matGold);
+  cap2.position.x = 1.25; g.add(cap2);
+  const podium = new THREE.Mesh(new THREE.BoxGeometry(3, 0.15, 1), matMarble);
+  podium.position.y = -0.5; g.add(podium);
+  g.position.set(x, y, z); g.rotation.y = 0.2; scene.add(g);
+}
+makeScroll(0, 0.9, -11);
+
+// ===== Zone 3: 法律典籍 (右墙) 3D书本 + 书架 =====
+function makeBookshelf(x, y, z, ry) {
+  const g = new THREE.Group();
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(7, 5, 1.2), matDarkWood);
+  g.add(frame);
+  const inner = new THREE.Mesh(new THREE.BoxGeometry(6.2, 4.4, 0.1), matWood);
+  inner.position.z = -0.5; g.add(inner);
+  for (let row = 0; row < 3; row++) {
+    const shelf = new THREE.Mesh(new THREE.BoxGeometry(6.0, 0.1, 0.6), matWood);
+    shelf.position.y = -1.5 + row * 1.5; shelf.position.z = -0.25;
+    g.add(shelf);
+    for (let b = 0; b < 8; b++) {
+      const h = 0.7 + Math.random() * 0.6;
+      const colors = ['#8b1a1a','#1e5a8b','#2d6a4f','#6b3a7a','#b8860b'];
+      const spine = new THREE.Mesh(
+        new THREE.BoxGeometry(0.35, h, 0.5),
+        new THREE.MeshStandardMaterial({ color:colors[Math.floor(Math.random()*5)], roughness:0.5 })
+      );
+      spine.position.y = -1.25 + row * 1.5 + h/2;
+      spine.position.x = -2.5 + b * 0.7;
+      spine.position.z = -0.25;
+      g.add(spine);
+    }
+  }
+  g.position.set(x, y, z); g.rotation.y = ry; scene.add(g);
+}
+makeBookshelf(18.5, 2.5, 0, -Math.PI/2);
+
+// 3D 大书
+function makeBigBook(x, y, z, ry, title, color) {
+  const g = new THREE.Group();
+  const coverTex = makeBookCover(title, color);
+  const cover = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 0.12), new THREE.MeshStandardMaterial({ map:coverTex, roughness:0.4 }));
+  g.add(cover);
+  const pages = new THREE.Mesh(new THREE.BoxGeometry(1.05, 1.45, 0.5), matParchment);
+  pages.position.x = 0.3; pages.rotation.y = 0.25; g.add(pages);
+
+  // 封面书脊
+  const spineCover = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.6, 0.16), matGold);
+  spineCover.position.x = -0.5; g.add(spineCover);
+
+  const podium = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.9, 0.2, 32), matMarble);
+  podium.position.y = -0.85; g.add(podium);
+  const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 0.5, 32), matMarble);
+  pedestal.position.y = -1.1; g.add(pedestal);
+
+  g.position.set(x, y, z); g.rotation.y = ry; scene.add(g);
+}
+makeBigBook(16.5, 1.1, -5.5, 0, '唐律疏议', '#8b1a1a');
+makeBigBook(16.5, 1.1, 1, 0.15, '民法典', '#1e5a8b');
+makeBigBook(16.5, 1.1, 7, -0.1, '宪法', '#6b3a7a');
+
+// ===== Zone 2: 经典案例 (左墙) 天平3D模型 =====
+function makeScales(x, y, z) {
+  const g = new THREE.Group();
+  // 底座
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.8, 32), matMarble);
+  base.position.y = 0.4; g.add(base);
+  // 支柱
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.5, 16), matBrass);
+  pillar.position.y = 1.65; g.add(pillar);
+  // 横梁
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.06, 0.06), matBrass);
+  beam.position.y = 2.9; g.add(beam);
+  // 链条左
+  const chainL1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 8), matBrass);
+  chainL1.position.set(-1.0, 2.5, 0); chainL1.rotation.z = 0.3; g.add(chainL1);
+  const chainL2 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 8), matBrass);
+  chainL2.position.set(1.0, 2.5, 0); chainL2.rotation.z = -0.3; g.add(chainL2);
+  // 托盘左
+  const plateL = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.06, 32), matBrass);
+  plateL.position.set(-1.0, 2.05, 0); g.add(plateL);
+  const plateR = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.06, 32), matBrass);
+  plateR.position.set(1.0, 2.05, 0); g.add(plateR);
+  // 链条右
+  const chainR1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 8), matBrass);
+  chainR1.position.set(-1.0, 2.5, 0); chainR1.rotation.z = 0.3; g.add(chainR1);
+  const chainR2 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 8), matBrass);
+  chainR2.position.set(1.0, 2.5, 0); chainR2.rotation.z = -0.3; g.add(chainR2);
+
+  g.position.set(x, y, z); g.name = 'scales';
+  scene.add(g);
+  return g;
+}
+const scalesGroup = makeScales(-17, 0.2, 0);
+
+// ===== Zone 4: 法治成就 (前墙) 法槌 + 数字屏幕 =====
+function makeGavel(x, y, z) {
+  const g = new THREE.Group();
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.5, 16), matDarkWood);
+  handle.rotation.z = Math.PI/2; handle.position.y = 0.4; g.add(handle);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.22, 0.22), matDarkWood);
+  head.position.y = 0.9; g.add(head);
+  const block = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.12, 32), matDarkWood);
+  block.position.y = 0.1; g.add(block);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 0.15, 32), matMarble);
+  base.position.y = 0.02; g.add(base);
+  g.position.set(x, y, z); scene.add(g);
+}
+makeGavel(-5, 0.15, -13);
+makeGavel(5, 0.15, -13);
+
+// 数字大屏
+function makeDigitalScreen(x, y, z, ry) {
+  const g = new THREE.Group();
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.2, 0.15), matGold);
+  g.add(frame);
+  const screen = new THREE.Mesh(
+    new THREE.BoxGeometry(2.8, 1.8, 0.1),
+    new THREE.MeshStandardMaterial({ color:'#113355', emissive:'#3388ff', emissiveIntensity:0.5, roughness:0.2 })
+  );
+  screen.position.z = 0.06; g.add(screen);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.15, 0.5), matMarble);
+  base.position.y = -1.2; g.add(base);
+  g.position.set(x, y, z); g.rotation.y = ry; g.name = 'digitalscreen';
+  scene.add(g);
+  return screen;
+}
+const digitalScreen = makeDigitalScreen(0, 2.5, -13.5, 0);
+
+// ===== 中央装饰：法治之柱 =====
+function makeCentralPillar() {
+  const g = new THREE.Group();
+  for (let i = 0; i < 5; i++) {
+    const r = 1.0 - i * 0.15;
+    const seg = new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.05, 0.8, 32), matMarble);
+    seg.position.y = 0.4 + i * 0.8; g.add(seg);
+  }
+  const topCone = new THREE.Mesh(new THREE.ConeGeometry(1.0, 1.2, 6), matGold);
+  topCone.position.y = 4.8; g.add(topCone);
+  // 旋转金环
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.08, 16, 48), matGold);
+  ring.position.y = 3.5; ring.name = 'centralRing';
+  g.add(ring);
+  g.position.set(0, 0, -1); scene.add(g);
+  return ring;
+}
+const centralRing = makeCentralPillar();
+
+// ===== 粒子灰尘 =====
+const particlesGeo = new THREE.BufferGeometry();
+const particlesCount = 120;
+const particlesPos = new Float32Array(particlesCount * 3);
+for (let i = 0; i < particlesCount; i++) {
+  particlesPos[i*3] = (Math.random() - 0.5) * 30;
+  particlesPos[i*3+1] = Math.random() * 8.5;
+  particlesPos[i*3+2] = (Math.random() - 0.5) * 20;
+}
+particlesGeo.setAttribute('position', new THREE.BufferAttribute(particlesPos, 3));
+const particlesMat = new THREE.PointsMaterial({ color:'#ffd700', size:0.04, transparent:true, opacity:0.5, blending:THREE.AdditiveBlending });
+const particles = new THREE.Points(particlesGeo, particlesMat);
+scene.add(particles);
+
+// ===== 交互系统 =====
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let hoveredObj = null;
+
+function updateMouse(e) {
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+}
+
+window.addEventListener('mousemove', e => {
+  updateMouse(e);
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(allInteractive);
+  if (intersects.length > 0) {
+    const obj = intersects[0].object;
+    if (hoveredObj !== obj) {
+      if (hoveredObj) hoveredObj.material.emissive?.set('#000000');
+      obj.material.emissive = new THREE.Color('#ffd700');
+      obj.material.emissiveIntensity = 0.25;
+      document.body.style.cursor = 'pointer';
+      hoveredObj = obj;
+    }
+  } else {
+    if (hoveredObj) {
+      hoveredObj.material.emissive?.set('#000000');
+      hoveredObj = null;
+    }
+    document.body.style.cursor = 'grab';
+  }
+});
+
+window.addEventListener('click', e => {
+  if (e.target.closest('#info-modal')) return;
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(allInteractive);
+  if (intersects.length > 0) {
+    const data = intersects[0].object.userData;
+    if (data && data.id) showModal(data);
+  }
+});
+
+// 弹窗
+function showModal(data) {
+  document.getElementById('modal-zone').textContent = data.zone;
+  document.getElementById('modal-title').textContent = data.title;
+  document.getElementById('modal-sub').textContent = data.sub || '';
+  document.getElementById('modal-desc').textContent = data.desc || '';
+  document.getElementById('info-modal').classList.add('show');
+  controls.enabled = false;
+}
+window.closeModal = function() {
+  document.getElementById('info-modal').classList.remove('show');
+  controls.enabled = true;
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ===== OrbitControls =====
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 3, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 2;
+controls.maxDistance = 18;
+controls.maxPolarAngle = Math.PI * 0.48;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.15;
+controls.update();
+
+// ===== 第一人称切换 =====
+let isFirstPerson = false;
+let fpKeys = {};
+window.addEventListener('keydown', e => {
+  fpKeys[e.key.toLowerCase()] = true;
+  if (e.key === 'f' || e.key === 'F') {
+    isFirstPerson = !isFirstPerson;
+    controls.enabled = !isFirstPerson;
+    document.getElementById('instructions').textContent = isFirstPerson
+      ? 'WASD 移动 | 鼠标旋转视角 | F 切换回轨道模式'
+      : '🖱 拖动旋转视角 | 滚轮缩放 | 点击展品查看详情 | F 切换第一人称';
+  }
+});
+window.addEventListener('keyup', e => { fpKeys[e.key.toLowerCase()] = false; });
+
+// ===== 区域标签 =====
+function updateZoneLabel() {
+  const pos = camera.position;
+  let zone = '';
+  if (pos.z < -10) zone = '法治历程';
+  else if (pos.x < -10) zone = '经典案例';
+  else if (pos.x > 10) zone = '法律典籍';
+  else if (pos.z > 9) zone = '法治成就';
+  const el = document.getElementById('zone-label');
+  if (zone) {
+    el.textContent = '📍 ' + zone;
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
+}
+
+// ===== 动画循环 =====
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  controls.update();
+
+  // 第一人称
+  if (isFirstPerson) {
+    const speed = 6 * dt;
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    dir.y = 0; dir.normalize();
+    const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0)).normalize();
+    if (fpKeys['w']) camera.position.addScaledVector(dir, speed);
+    if (fpKeys['s']) camera.position.addScaledVector(dir, -speed);
+    if (fpKeys['a']) camera.position.addScaledVector(right, -speed);
+    if (fpKeys['d']) camera.position.addScaledVector(right, speed);
+    // 限制范围
+    camera.position.x = Math.max(-18, Math.min(18, camera.position.x));
+    camera.position.z = Math.max(-13, Math.min(13, camera.position.z));
+    camera.position.y = 3;
+  }
+
+  // 中央金环旋转
+  if (centralRing) centralRing.rotation.y += 0.4 * dt;
+
+  // 天平微摆
+  if (scalesGroup) {
+    const tilt = Math.sin(Date.now() * 0.001) * 0.04;
+    scalesGroup.children.forEach(c => {
+      if (c.material === matBrass && Math.abs(c.position.x) > 0.8) {
+        c.rotation.z += tilt * 0.1;
+      }
+    });
+  }
+
+  // 数字屏幕脉冲
+  if (digitalScreen) {
+    digitalScreen.material.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.002) * 0.15;
+  }
+
+  // 粒子
+  const posArr = particles.geometry.attributes.position.array;
+  for (let i = 0; i < particlesCount; i++) {
+    posArr[i*3+1] += 0.3 * dt;
+    if (posArr[i*3+1] > 8.5) { posArr[i*3+1] = 0; posArr[i*3] = (Math.random()-0.5)*30; posArr[i*3+2] = (Math.random()-0.5)*20; }
+  }
+  particles.geometry.attributes.position.needsUpdate = true;
+
+  updateZoneLabel();
+  renderer.render(scene, camera);
+}
+
+// ===== 响应窗口变化 =====
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// 触摸支持
+window.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    updateMouse({ clientX:t.clientX, clientY:t.clientY });
+  }
+});
+
+// ===== 启动 =====
+animate();
+setTimeout(() => {
+  document.getElementById('loading').classList.add('hidden');
+}, 800);
+</script>
+</body>
+</html>
