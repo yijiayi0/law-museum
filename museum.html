@@ -193,6 +193,16 @@ renderer.toneMapping = THREE.LinearToneMapping;
 renderer.toneMappingExposure = 1.1;
 document.body.appendChild(renderer.domElement);
 
+// 测试：确认Three.js渲染正常
+(function testRender() {
+  var g = new THREE.BoxGeometry(3, 3, 3);
+  var m = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+  var cube = new THREE.Mesh(g, m);
+  cube.position.set(0, 3, 0);
+  scene.add(cube);
+  console.log('Test cube added, THREE version:', THREE.REVISION);
+})();
+
 // ===== 灯光 =====
 scene.add(new THREE.AmbientLight('#fff5e6', 0.5));
 
