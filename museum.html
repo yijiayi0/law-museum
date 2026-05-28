@@ -108,6 +108,16 @@ canvas{display:block}
 <script src="OrbitControls.js"></script>
 
 <script>
+// 错误处理和加载状态
+window.addEventListener('error', function(e) {
+  var ld = document.getElementById('loading');
+  if (ld) { ld.innerHTML = '<p style="color:#ef4444">⚠️ 加载失败：' + (e.message || '未知错误') + '</p><p style="color:#a09080;font-size:.7rem;margin-top:8px">请刷新页面重试</p>'; }
+});
+setTimeout(function() {
+  var ld = document.getElementById('loading');
+  if (ld) ld.classList.add('hidden');
+}, 1500);
+
 // ===== 展品数据 =====
 const EXHIBITS = [
   // Zone 1: 法治历程 (后墙)
@@ -693,9 +703,6 @@ window.addEventListener('touchstart', e => {
 
 // ===== 启动 =====
 animate();
-setTimeout(() => {
-  document.getElementById('loading').classList.add('hidden');
-}, 800);
 </script>
 </body>
 </html>
