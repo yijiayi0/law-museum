@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>獬豸 - 3D预览</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;overflow:hidden;font-family:'Microsoft YaHei',sans-serif}
+#info{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#c9a96e;text-align:center;pointer-events:none}
+#info h2{font-size:1.5rem;letter-spacing:4px}
+#info p{font-size:.7rem;opacity:.6;margin-top:4px}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1a1a2e;z-index:10;transition:opacity .5s}
+#loading.hidden{opacity:0;pointer-events:none}
+.spinner{width:40px;height:40px;border:3px solid rgba(201,169,110,.3);border-top-color:#c9a96e;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="loading"><div class="spinner"></div></div>
+<div id="info"><h2>獬 豸</h2><p>Xiè Zhì · 上古神兽 · 司法公正之象征</p></div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+setTimeout(function(){document.getElementById('loading').classList.add('hidden');},600);
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color('#1a1a2e');
+scene.fog = new THREE.Fog('#1a1a2e', 5, 25);
+
+var camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.5, 50);
+camera.position.set(5, 3, 8);
+
+var renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.toneMapping = THREE.LinearToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.appendChild(renderer.domElement);
+
+var controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 2, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+controls.minDistance = 3;
+controls.maxDistance = 15;
+controls.maxPolarAngle = Math.PI * 0.7;
+controls.update();
+
+// ---- 光照 ----
+scene.add(new THREE.AmbientLight('#fff5e6', 0.5));
+var dl = new THREE.DirectionalLight('#ffffff', 1.0);
+dl.position.set(5, 10, 5);
+dl.castShadow = true;
+dl.shadow.mapSize.set(1024, 1024);
+scene.add(dl);
+var dl2 = new THREE.DirectionalLight('#ffd4a0', 0.6);
+dl2.position.set(-3, 4, -3);
+scene.add(dl2);
+var spot = new THREE.SpotLight('#ffd700', 2);
+spot.position.set(0, 6, 3);
+spot.angle = 0.5;
+spot.penumbra = 0.3;
+spot.decay = 1;
+spot.distance = 20;
+scene.add(spot);
+
+// ---- 地面 ----
+var groundGeo = new THREE.CircleGeometry(6, 48);
+var groundMat = new THREE.MeshStandardMaterial({color:'#2a2035', roughness:0.9});
+var ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2;
+ground.position.y = -0.02;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// 底座
+var baseGeo = new THREE.CylinderGeometry(1.2, 1.3, 0.3, 32);
+var baseMat = new THREE.MeshStandardMaterial({color:'#3d3d3d', roughness:0.3, metalness:0.9});
+var base = new THREE.Mesh(baseGeo, baseMat);
+base.position.y = 0.15;
+base.castShadow = true; base.receiveShadow = true;
+scene.add(base);
+
+var baseTopGeo = new THREE.CylinderGeometry(1.15, 1.2, 0.08, 32);
+var baseTop = new THREE.Mesh(baseTopGeo, baseMat);
+baseTop.position.y = 0.34;
+baseTop.castShadow = true;
+scene.add(baseTop);
+
+// ---- 獬豸模型 ----
+var xiezhi = new THREE.Group();
+var goldMat = new THREE.MeshStandardMaterial({color:'#c9a96e', roughness:0.3, metalness:0.9});
+var darkGold = new THREE.MeshStandardMaterial({color:'#8b6914', roughness:0.4, metalness:0.85});
+var hornMat = new THREE.MeshStandardMaterial({color:'#f5e6c8', roughness:0.2, metalness:0.5});
+var eyeMat = new THREE.MeshStandardMaterial({color:'#1a0a00', roughness:0.1, metalness:0.1});
+var maneMat = new THREE.MeshStandardMaterial({color:'#a07020', roughness:0.5, metalness:0.6});
+
+// 身体 (卧姿)
+var bodyGeo = new THREE.SphereGeometry(0.9, 32, 24);
+bodyGeo.scale(1, 0.65, 1.3);
+var body = new THREE.Mesh(bodyGeo, goldMat);
+body.position.y = 0.9;
+body.castShadow = true;
+xiezhi.add(body);
+
+// 胸部
+var chestGeo = new THREE.SphereGeometry(0.65, 24, 18);
+chestGeo.scale(0.85, 0.7, 0.7);
+var chest = new THREE.Mesh(chestGeo, goldMat);
+chest.position.set(0, 0.95, 0.75);
+chest.castShadow = true;
+xiezhi.add(chest);
+
+// 臀部
+var rumpGeo = new THREE.SphereGeometry(0.6, 20, 16);
+rumpGeo.scale(0.8, 0.6, 0.65);
+var rump = new THREE.Mesh(rumpGeo, goldMat);
+rump.position.set(0, 0.85, -0.85);
+rump.castShadow = true;
+xiezhi.add(rump);
+
+// 头部
+var headGeo = new THREE.SphereGeometry(0.45, 24, 20);
+headGeo.scale(0.85, 0.8, 0.75);
+var head = new THREE.Mesh(headGeo, goldMat);
+head.position.set(0, 1.25, 1.2);
+head.castShadow = true;
+xiezhi.add(head);
+
+// 吻部
+var snoutGeo = new THREE.SphereGeometry(0.22, 16, 12);
+snoutGeo.scale(0.7, 0.6, 0.9);
+var snout = new THREE.Mesh(snoutGeo, goldMat);
+snout.position.set(0, 1.15, 1.45);
+snout.castShadow = true;
+xiezhi.add(snout);
+
+// 鼻环
+var noseGeo = new THREE.TorusGeometry(0.06, 0.025, 8, 12);
+var noseRing = new THREE.Mesh(noseGeo, darkGold);
+noseRing.position.set(0, 1.08, 1.52);
+noseRing.rotation.x = Math.PI/2;
+xiezhi.add(noseRing);
+
+// 眼睛
+var eyeGeo = new THREE.SphereGeometry(0.06, 12, 8);
+var leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+leftEye.position.set(0.2, 1.38, 1.4);
+xiezhi.add(leftEye);
+var rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+rightEye.position.set(-0.2, 1.38, 1.4);
+xiezhi.add(rightEye);
+
+// 耳朵
+var earGeo = new THREE.ConeGeometry(0.08, 0.2, 8, 1);
+var leftEar = new THREE.Mesh(earGeo, goldMat);
+leftEar.position.set(0.28, 1.6, 1.05);
+leftEar.rotation.z = 0.4; leftEar.rotation.x = 0.2;
+xiezhi.add(leftEar);
+var rightEar = new THREE.Mesh(earGeo, goldMat);
+rightEar.position.set(-0.28, 1.6, 1.05);
+rightEar.rotation.z = -0.4; rightEar.rotation.x = 0.2;
+xiezhi.add(rightEar);
+
+// 独角 (獬豸的标志)
+var hornGeo = new THREE.ConeGeometry(0.1, 0.65, 12, 8);
+var horn = new THREE.Mesh(hornGeo, hornMat);
+horn.position.set(0, 1.8, 1.1);
+horn.rotation.x = -0.25;
+horn.castShadow = true;
+xiezhi.add(horn);
+
+// 角上的螺旋纹
+for (var i=0; i<4; i++){
+  var ringGeo = new THREE.TorusGeometry(0.08 - i*0.012, 0.015, 6, 12);
+  var ring = new THREE.Mesh(ringGeo, darkGold);
+  ring.position.set(0, 1.6 + i*0.14, 1.05 + i*0.07);
+  xiezhi.add(ring);
+}
+
+// 鬃毛
+for (var i=0; i<5; i++){
+  var maneGeo = new THREE.ConeGeometry(0.06, 0.35 + Math.random()*0.2, 6, 4);
+  var mane = new THREE.Mesh(maneGeo, maneMat);
+  mane.position.set(0, 1.4 + i*0.08, 0.85 - i*0.1);
+  mane.rotation.x = -0.6 + i*0.1;
+  xiezhi.add(mane);
+}
+
+// 背部鳞甲
+for (var i=0; i<6; i++){
+  var scaleGeo = new THREE.ConeGeometry(0.08, 0.12, 6, 4);
+  scaleGeo.rotateX(Math.PI/2);
+  var scale = new THREE.Mesh(scaleGeo, darkGold);
+  scale.position.set(0, 1.2, -0.3 - i*0.25);
+  scale.rotation.x = 0.3;
+  xiezhi.add(scale);
+}
+
+// 尾巴
+var tailCurve = new THREE.CubicBezierCurve3(
+  new THREE.Vector3(0, 0.8, -1.6),
+  new THREE.Vector3(0.3, 0.5, -2.2),
+  new THREE.Vector3(-0.2, 1.2, -2.6),
+  new THREE.Vector3(0, 1.5, -2.8)
+);
+var tailGeo = new THREE.TubeGeometry(tailCurve, 20, 0.06, 8, false);
+var tail = new THREE.Mesh(tailGeo, goldMat);
+tail.castShadow = true;
+xiezhi.add(tail);
+
+// 尾端毛球
+var tailTipGeo = new THREE.SphereGeometry(0.1, 8, 8);
+var tailTip = new THREE.Mesh(tailTipGeo, maneMat);
+tailTip.position.set(0, 1.5, -2.8);
+xiezhi.add(tailTip);
+
+// 四条腿
+function createLeg(x, z, isFront){
+  var legGroup = new THREE.Group();
+  var upperGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.5, 12);
+  var upper = new THREE.Mesh(upperGeo, goldMat);
+  upper.position.y = 0.3;
+  upper.castShadow = true;
+  legGroup.add(upper);
+  var hoofGeo = new THREE.CylinderGeometry(0.1, 0.13, 0.2, 12);
+  var hoof = new THREE.Mesh(hoofGeo, darkGold);
+  hoof.position.y = 0.05;
+  hoof.castShadow = true;
+  legGroup.add(hoof);
+  legGroup.position.set(x, 0.15, z);
+  if (isFront) legGroup.rotation.x = -0.2;
+  return legGroup;
+}
+xiezhi.add(createLeg(0.45, 0.75, true));
+xiezhi.add(createLeg(-0.45, 0.75, true));
+xiezhi.add(createLeg(0.4, -0.7, false));
+xiezhi.add(createLeg(-0.4, -0.7, false));
+
+// 鬃毛火焰 (背后装饰)
+for (var i=0; i<7; i++){
+  var flameGeo = new THREE.ConeGeometry(0.06, 0.25 + Math.random()*0.3, 6, 4);
+  var flame = new THREE.Mesh(flameGeo, maneMat);
+  var angle = (i - 3) * 0.3;
+  flame.position.set(Math.sin(angle)*0.35, 1.1 + Math.random()*0.2, -0.5 - Math.abs(i-3)*0.15);
+  flame.rotation.x = -0.3;
+  flame.rotation.z = angle * 0.5;
+  xiezhi.add(flame);
+}
+
+xiezhi.position.y = 0.34;
+scene.add(xiezhi);
+
+// 铭牌
+var plaqueGeo = new THREE.BoxGeometry(0.8, 0.15, 0.05);
+var plaqueMat = new THREE.MeshStandardMaterial({color:'#2a2a2a', roughness:0.2, metalness:0.8});
+var plaque = new THREE.Mesh(plaqueGeo, plaqueMat);
+plaque.position.set(0, 0.05, 1.5);
+plaque.castShadow = true;
+scene.add(plaque);
+
+// 粒子光效环绕
+var particlesGeo = new THREE.BufferGeometry();
+var particlesCount = 60;
+var particlesPos = new Float32Array(particlesCount * 3);
+for (var i=0; i<particlesCount; i++){
+  var a = (i / particlesCount) * Math.PI * 2;
+  var r = 1.6 + Math.sin(i*0.5)*0.3;
+  particlesPos[i*3] = Math.cos(a) * r;
+  particlesPos[i*3+1] = 1.2 + Math.cos(a*2)*0.6;
+  particlesPos[i*3+2] = Math.sin(a) * r;
+}
+particlesGeo.setAttribute('position', new THREE.BufferAttribute(particlesPos, 3));
+var particlesMat = new THREE.PointsMaterial({color:'#ffd700', size:0.03, blending:THREE.AdditiveBlending, depthWrite:false});
+var particles = new THREE.Points(particlesGeo, particlesMat);
+scene.add(particles);
+
+// 动画
+function animate(){
+  requestAnimationFrame(animate);
+  particles.rotation.y += 0.005;
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// 响应
+window.addEventListener('resize', function(){
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
