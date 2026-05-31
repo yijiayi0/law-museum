@@ -6,426 +6,462 @@
 <title>獬豸 - 司法神兽</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#1a1a2e;overflow:hidden;font-family:'Microsoft YaHei',sans-serif}
-#info{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:#c9a96e;text-align:center;pointer-events:none}
-#info h2{font-size:1.6rem;letter-spacing:6px}
-#info p{font-size:.7rem;opacity:.5;margin-top:4px}
+body{background:#1a1a2e;overflow:hidden}
+canvas{display:block}
+#info{position:fixed;bottom:30px;width:100%;text-align:center;color:#c9a96e;pointer-events:none;z-index:5}
+#info h2{font-size:1.8rem;letter-spacing:8px;margin:0}
+#info p{font-size:.7rem;opacity:.5;margin:4px 0 0}
 </style>
 </head>
 <body>
-<div id="info"><h2>獬 豸</h2><p>Xiè Zhì · 能辨曲直 · 触不直者</p></div>
+<div id="info"><h2>獬 豸</h2><p>Xiè Zhì · 司法神兽 · 辨曲直触不直者</p></div>
 <script src="three.min.js"></script>
 <script src="OrbitControls.js"></script>
 <script>
 
-var scene = new THREE.Scene();
-scene.background = new THREE.Color('#1a1a2e');
-scene.fog = new THREE.Fog('#1a1a2e', 5, 22);
+var S = THREE.Scene, W = THREE.WebGLRenderer, PC = THREE.PerspectiveCamera,
+    A = THREE.AmbientLight, D = THREE.DirectionalLight, SL = THREE.SpotLight,
+    G = THREE.Group, M = THREE.Mesh, B = THREE.BufferGeometry,
+    MB = THREE.MeshStandardMaterial, SP = THREE.SphereGeometry,
+    CY = THREE.CylinderGeometry, CN = THREE.ConeGeometry, BX = THREE.BoxGeometry,
+    TO = THREE.TorusGeometry, TU = THREE.TubeGeometry, LA = THREE.LatheGeometry,
+    C2 = THREE.CatmullRomCurve3, V3 = THREE.Vector3, V2 = THREE.Vector2,
+    OR = THREE.OrbitControls;
 
-var camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.5, 50);
-camera.position.set(4, 2.8, 7);
+var scene = new S();
+scene.background = new THREE.Color('#161225');
+scene.fog = new THREE.Fog('#161225', 4, 22);
 
-var renderer = new THREE.WebGLRenderer({antialias:true});
+var camera = new PC(42, innerWidth/innerHeight, 0.5, 50);
+camera.position.set(3.5, 2.2, 6);
+
+var renderer = new W({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled = true;
 renderer.toneMapping = THREE.LinearToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.15;
 document.body.appendChild(renderer.domElement);
 
-var controls = new THREE.OrbitControls(camera, renderer.domElement);
+var controls = new OR(camera, renderer.domElement);
 controls.target.set(0, 1.4, 0);
-controls.enableDamping = true; controls.dampingFactor = 0.08;
-controls.minDistance = 3; controls.maxDistance = 14;
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 3;
+controls.maxDistance = 14;
 controls.maxPolarAngle = Math.PI*0.6;
 controls.update();
 
-// 光照
-scene.add(new THREE.AmbientLight('#f0e8d8', 0.55));
-var key = new THREE.DirectionalLight('#ffffff', 0.85);
-key.position.set(5, 8, 5); key.castShadow = true;
+// ---- 光照 ----
+scene.add(new A('#f0e5d5', 0.55));
+var key = new D('#fffdf5', 0.9);
+key.position.set(6, 9, 6); key.castShadow = true;
 key.shadow.mapSize.set(1024,1024);
+key.shadow.camera.near = 0.5; key.shadow.camera.far = 30;
+key.shadow.camera.left = -8; key.shadow.camera.right = 8;
+key.shadow.camera.top = 8; key.shadow.camera.bottom = -8;
 scene.add(key);
-var fill = new THREE.DirectionalLight('#c8b0a0', 0.35);
-fill.position.set(-3, 4, -3); scene.add(fill);
-var rim = new THREE.SpotLight('#ffe0b0', 1.5);
-rim.position.set(0, 5, 2); rim.angle = 0.6; rim.penumbra = 0.4;
-rim.decay = 1; rim.distance = 20; scene.add(rim);
+scene.add(new D('#d4c0a0', 0.35)).position.set(-3, 5, -3);
+var spot = new SL('#ffe0c0', 2);
+spot.position.set(0, 6, 3); spot.angle = 0.55; spot.penumbra = 0.4;
+spot.decay = 1; spot.distance = 20; scene.add(spot);
 
-// 地面
-var floor = new THREE.Mesh(
-  new THREE.CircleGeometry(5,48),
-  new THREE.MeshStandardMaterial({color:'#282235',roughness:0.9})
-);
+// ---- 地面 ----
+var floor = new M(new THREE.CircleGeometry(5,48), new MB({color:'#1e1a2a',roughness:0.9}));
 floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; scene.add(floor);
 
-// 须弥座
-var baseMat = new THREE.MeshStandardMaterial({color:'#5a5040', roughness:0.5, metalness:0.2});
-[{w:1.9,h:0.18,d:1.5,y:0.09},{w:1.65,h:0.12,d:1.3,y:0.24},{w:1.8,h:0.06,d:1.45,y:0.33}].forEach(function(s){
-  var m = new THREE.Mesh(new THREE.BoxGeometry(s.w,s.h,s.d), baseMat);
+// ---- 须弥座 ----
+var baseM = new MB({color:'#3d3830', roughness:0.45, metalness:0.15});
+[{w:2,h:.2,d:1.6,y:.1},{w:1.7,h:.12,d:1.35,y:.26},{w:1.85,h:.06,d:1.5,y:.35}].forEach(function(s){
+  var m = new M(new BX(s.w,s.h,s.d), baseM);
   m.position.y = s.y; m.castShadow = true; m.receiveShadow = true; scene.add(m);
 });
 
-// ==================== 獬豸主体 ====================
-var xz = new THREE.Group();
+// ==================== 材质 ====================
+var bodyMat = new MB({color:'#7d6b52', roughness:0.5, metalness:0.12});
+var darkMat = new MB({color:'#544020', roughness:0.45, metalness:0.2});
+var scaleMat = new MB({color:'#615030', roughness:0.4, metalness:0.25});
+var hornMat = new MB({color:'#e8dcc0', roughness:0.18, metalness:0.3});
+var clawMat = new MB({color:'#2a1a08', roughness:0.25, metalness:0.45});
+var maneMat = new MB({color:'#803818', roughness:0.5, metalness:0.1});
+var gold = new MB({color:'#c9a050', roughness:0.2, metalness:0.9});
+var eyeW = new MB({color:'#f8eed8', roughness:0.12, metalness:0.2});
+var eyeB = new MB({color:'#060300', roughness:0.2, metalness:0.3});
 
-// 材质
-var skin = new THREE.MeshStandardMaterial({color:'#7a6a58', roughness:0.55, metalness:0.15});
-var skinDark = new THREE.MeshStandardMaterial({color:'#5a4a38', roughness:0.5, metalness:0.2});
-var scaleMat = new THREE.MeshStandardMaterial({color:'#6b5840', roughness:0.45, metalness:0.25});
-var hornMat = new THREE.MeshStandardMaterial({color:'#e8dcc8', roughness:0.2, metalness:0.3});
-var clawMat = new THREE.MeshStandardMaterial({color:'#3a3028', roughness:0.3, metalness:0.4});
-var eyeWhite = new THREE.MeshStandardMaterial({color:'#f8f0e0', roughness:0.15, metalness:0.2});
-var eyePupil = new THREE.MeshStandardMaterial({color:'#0a0500', roughness:0.2, metalness:0.3});
-var maneMat = new THREE.MeshStandardMaterial({color:'#8a4020', roughness:0.5, metalness:0.15});
-var goldAccent = new THREE.MeshStandardMaterial({color:'#c9a050', roughness:0.2, metalness:0.9});
+// ==================== 獬豸 ====================
+var xz = new G();
 
-// ---- 身体 (似牛/鹿的健壮身形) ----
-var torsoGeo = new THREE.SphereGeometry(0.65, 24, 18);
-torsoGeo.scale(0.9, 0.65, 1.1);
-var torso = new THREE.Mesh(torsoGeo, skin);
-torso.position.y = 0.95; torso.castShadow = true; torso.receiveShadow = true;
-xz.add(torso);
+// ==== 身体 (用LatheGeometry做牛/鹿身形) ====
+var bodyProfile = [];
+for (var i=0; i<=32; i++){
+  var t = i/32;
+  var r;
+  if (t<0.15) r = 0.45*(t/0.15);           // 前胸渐宽
+  else if (t<0.4) r = 0.52;                   // 胸宽
+  else if (t<0.7) r = 0.52;                   // 腹宽
+  else if (t<0.85) r = 0.52*(1-(t-0.7)/0.15*0.4); // 臀渐窄
+  else r = 0.35*(1-(t-0.85)/0.15*0.5);        // 尾渐窄
+  bodyProfile.push(new V2(r, t*1.4-0.1));
+}
+var bodyGeo = new LA(bodyProfile, 28);
+var body = new M(bodyGeo, bodyMat);
+body.rotation.x = Math.PI/2;
+body.position.y = 0.65;
+body.castShadow = true; body.receiveShadow = true;
+xz.add(body);
 
-// 胸部
-var chestGeo = new THREE.SphereGeometry(0.5, 20, 14);
-chestGeo.scale(0.8, 0.65, 0.55);
-var chest = new THREE.Mesh(chestGeo, skin);
-chest.position.set(0, 1.0, 0.55); chest.castShadow = true;
-xz.add(chest);
-
-// 臀部
-var rumpGeo = new THREE.SphereGeometry(0.55, 18, 14);
-rumpGeo.scale(0.75, 0.55, 0.6);
-var rump = new THREE.Mesh(rumpGeo, skin);
-rump.position.set(0, 0.8, -0.75); rump.castShadow = true;
-xz.add(rump);
-
-// ---- 鳞甲 ----
-for (var row=0; row<6; row++){
-  for (var col=-5; col<=5; col++){
-    var scGeo = new THREE.CylinderGeometry(0.04, 0.05, 0.02, 6);
-    var sc = new THREE.Mesh(scGeo, scaleMat);
-    var angle = (col/6)*Math.PI*0.6;
-    var r = 0.55 + row*0.02;
+// ==== 鳞甲 (覆盖身体) ====
+var scaleCache = new CN(0.04, 0.015, 5, 4);
+for (var row=0; row<14; row++){
+  var t = row/14;
+  var bodyR;
+  if (t<0.15) bodyR = 0.45*(t/0.15);
+  else if (t<0.7) bodyR = 0.52;
+  else bodyR = 0.52*(1-(t-0.7)/0.3*0.4);
+  var colCount = Math.floor(bodyR*15);
+  for (var c=0; c<colCount; c++){
+    var angle = (c/colCount)*Math.PI*2 + row*0.15;
+    var sc = new M(scaleCache, scaleMat);
     sc.position.set(
-      Math.sin(angle)*r*0.7,
-      1.0 + row*0.06 + Math.abs(col)*0.01,
-      -0.2 + Math.cos(angle)*r*0.8 - row*0.13
+      Math.cos(angle)*bodyR*0.92,
+      -0.02 + t*1.38,
+      Math.sin(angle)*bodyR*0.92
     );
-    sc.rotation.z = Math.PI/2;
-    sc.rotation.y = angle;
+    sc.rotation.set(0, angle, Math.PI/2);
     sc.castShadow = true;
     xz.add(sc);
   }
 }
 
-// 腹部鳞片
-for (var row=0; row<4; row++){
-  for (var col=-4; col<=4; col++){
-    var scGeo = new THREE.CylinderGeometry(0.035, 0.045, 0.02, 6);
-    var sc = new THREE.Mesh(scGeo, skinDark);
-    var angle = (col/5)*Math.PI*0.5;
-    sc.position.set(
-      Math.sin(angle)*0.35,
-      0.65 + row*0.06,
-      -0.1 + Math.cos(angle)*0.4 - row*0.1
-    );
-    sc.rotation.z = Math.PI/2; sc.rotation.y = angle;
-    sc.castShadow = true;
-    xz.add(sc);
-  }
+// ==== 颈部 ====
+var neckProfile = [];
+for (var i=0; i<=16; i++){
+  var t = i/16;
+  neckProfile.push(new V2(0.22 + t*0.04, t*0.4));
 }
-
-// ---- 颈部 ----
-var neckGeo = new THREE.CylinderGeometry(0.22, 0.3, 0.4, 14);
-var neck = new THREE.Mesh(neckGeo, skin);
-neck.position.set(0, 1.2, 0.5); neck.rotation.x = 0.4;
+var neckGeo = new LA(neckProfile, 12);
+var neck = new M(neckGeo, bodyMat);
+neck.position.set(0, 0.95, 0.4);
+neck.rotation.x = Math.PI/2 + 0.45;
 neck.castShadow = true;
 xz.add(neck);
 
-// ---- 头部 (龙首) ----
-var headGroup = new THREE.Group();
-headGroup.position.set(0, 1.5, 0.85);
+// ==== 胸部肌肉 ====
+var chestGeo = new SP(0.45, 16, 12);
+chestGeo.scale(0.65, 0.5, 0.7);
+var chest = new M(chestGeo, bodyMat);
+chest.position.set(0, 0.85, 0.5);
+xz.add(chest);
 
-// 头骨
-var skullGeo = new THREE.SphereGeometry(0.4, 22, 18);
-skullGeo.scale(0.85, 0.75, 0.85);
-var skull = new THREE.Mesh(skullGeo, skin);
+// ==== 臀部 ====
+var rumpGeo = new SP(0.42, 14, 10);
+rumpGeo.scale(0.6, 0.5, 0.7);
+var rump = new M(rumpGeo, bodyMat);
+rump.position.set(0, 0.7, -0.65);
+xz.add(rump);
+
+// ==================== 头部 (龙首) ====================
+var headG = new G();
+headG.position.set(0, 1.35, 0.85);
+
+// 头颅 (稍扁)
+var skullGeo = new SP(0.4, 22, 18);
+skullGeo.scale(0.75, 0.65, 0.75);
+var skull = new M(skullGeo, bodyMat);
 skull.castShadow = true;
-headGroup.add(skull);
+headG.add(skull);
 
-// 额头隆起
-var foreheadGeo = new THREE.SphereGeometry(0.22, 12, 10);
-foreheadGeo.scale(0.7, 0.45, 0.5);
-var forehead = new THREE.Mesh(foreheadGeo, skin);
-forehead.position.set(0, 0.22, 0.2);
-headGroup.add(forehead);
+// 额头
+var forehead = new M(new SP(0.2, 12, 8), bodyMat);
+forehead.scale.set(0.7, 0.45, 0.6);
+forehead.position.set(0, 0.18, 0.15);
+headG.add(forehead);
 
-// 长吻部 (龙嘴)
-var snoutGeo = new THREE.CylinderGeometry(0.12, 0.18, 0.45, 12);
-var snout = new THREE.Mesh(snoutGeo, skin);
-snout.position.set(0, -0.1, 0.35); snout.rotation.x = Math.PI/2;
-snout.castShadow = true;
-headGroup.add(snout);
+// 上吻 (长)
+var upperSnoutGeo = new BX(0.22, 0.12, 0.4);
+var upperSnout = new M(upperSnoutGeo, bodyMat);
+upperSnout.position.set(0, -0.08, 0.3);
+headG.add(upperSnout);
+
+// 下颚
+var lowerJawGeo = new BX(0.18, 0.06, 0.35);
+var lowerJaw = new M(lowerJawGeo, darkMat);
+lowerJaw.position.set(0, -0.16, 0.3);
+headG.add(lowerJaw);
+
+// 嘴缝
+var mouthGap = new M(new BX(0.14, 0.015, 0.2), new MB({color:'#1a0500', roughness:0.9}));
+mouthGap.position.set(0, -0.12, 0.32);
+headG.add(mouthGap);
 
 // 鼻头
-var noseGeo = new THREE.SphereGeometry(0.1, 10, 8);
-noseGeo.scale(0.7, 0.5, 0.6);
-var nose = new THREE.Mesh(noseGeo, skinDark);
-nose.position.set(0, -0.12, 0.6);
-headGroup.add(nose);
+var noseGeo = new SP(0.08, 8, 6);
+noseGeo.scale(0.6, 0.4, 0.5);
+var nose = new M(noseGeo, darkMat);
+nose.position.set(0, -0.1, 0.52);
+headG.add(nose);
 
 // 鼻孔
-for (var nx=-0.05; nx<=0.05; nx+=0.1){
-  var nostril = new THREE.Mesh(
-    new THREE.SphereGeometry(0.03, 6, 6),
-    new THREE.MeshStandardMaterial({color:'#1a0800', roughness:0.8})
-  );
-  nostril.position.set(nx, -0.12, 0.64);
-  headGroup.add(nostril);
-}
+[-0.04, 0.04].forEach(function(x){
+  headG.add(new M(new SP(0.025, 6, 4), new MB({color:'#0a0200', roughness:0.9}))).position.set(x, -0.1, 0.55);
+});
 
-// 张嘴 - 下颌
-var jawGeo = new THREE.BoxGeometry(0.2, 0.06, 0.3);
-var jaw = new THREE.Mesh(jawGeo, skinDark);
-jaw.position.set(0, -0.18, 0.45);
-headGroup.add(jaw);
+// 上牙
+[-0.05, 0.05].forEach(function(x){
+  var fang = new M(new CN(0.02, 0.07, 6, 4), hornMat);
+  fang.position.set(x, -0.14, 0.42);
+  fang.rotation.x = 0.2;
+  headG.add(fang);
+});
 
-// 嘴内部
-var mouthInterior = new THREE.Mesh(
-  new THREE.BoxGeometry(0.15, 0.04, 0.2),
-  new THREE.MeshStandardMaterial({color:'#2a0800', roughness:0.9})
-);
-mouthInterior.position.set(0, -0.16, 0.44);
-headGroup.add(mouthInterior);
+// 下牙
+[-0.04, 0.04].forEach(function(x){
+  var fang = new M(new CN(0.018, 0.06, 6, 4), hornMat);
+  fang.position.set(x, -0.16, 0.38);
+  fang.rotation.x = -0.15;
+  headG.add(fang);
+});
 
-// 牙齿 (尖牙)
-for (var tx=-0.06; tx<=0.06; tx+=0.12){
-  var fang = new THREE.Mesh(
-    new THREE.ConeGeometry(0.025, 0.08, 6, 4),
-    hornMat
-  );
-  fang.position.set(tx, -0.16, 0.5); fang.rotation.x = 0.15;
-  headGroup.add(fang);
-}
-
-// 虬髯 (嘴角长卷须)
-function createWhisker(side){
-  var pts = [
-    new THREE.Vector3(side*0.22, -0.1, 0.4),
-    new THREE.Vector3(side*0.35, -0.08, 0.55),
-    new THREE.Vector3(side*0.5, -0.2, 0.35),
-    new THREE.Vector3(side*0.6, -0.4, 0.1),
-  ];
-  var curve = new THREE.CatmullRomCurve3(pts);
-  var geo = new THREE.TubeGeometry(curve, 20, 0.025, 8, false);
-  var whisker = new THREE.Mesh(geo, maneMat);
-  whisker.castShadow = true;
-  return whisker;
-}
-headGroup.add(createWhisker(1));
-headGroup.add(createWhisker(-1));
-
-// 下颚胡须
-for (var s=-1; s<=1; s+=2){
-  for (var i=0; i<3; i++){
-    var bGeo = new THREE.CylinderGeometry(0.01, 0.02, 0.35+i*0.1, 6);
-    var beard = new THREE.Mesh(bGeo, maneMat);
-    beard.position.set(s*0.12+i*0.04*s, -0.25-i*0.06, 0.38+i*0.05);
-    beard.rotation.z = s*0.3; beard.rotation.x = 0.4;
-    headGroup.add(beard);
-  }
-}
-
-// ---- 独角 (关键标志) ----
-var hornGeo = new THREE.ConeGeometry(0.06, 0.8, 16, 16);
-var horn = new THREE.Mesh(hornGeo, hornMat);
-horn.position.set(0, 0.45, 0.08);
-horn.rotation.x = -0.35;
-horn.castShadow = true;
-headGroup.add(horn);
-// 角螺旋
-for (var i=0; i<6; i++){
-  var rGeo = new THREE.TorusGeometry(0.055-i*0.005, 0.015, 8, 12);
-  var ring = new THREE.Mesh(rGeo, new THREE.MeshStandardMaterial({color:'#c8b888', roughness:0.2, metalness:0.4}));
-  ring.position.set(0, 0.25+i*0.12, 0.03+i*0.06);
-  headGroup.add(ring);
-}
-
-// ---- 眼睛 (虎目圆睁) ----
-function createEye(side){
-  var g = new THREE.Group();
-  // 眼眶凸起
-  var socket = new THREE.Mesh(
-    new THREE.SphereGeometry(0.1, 10, 8),
-    new THREE.MeshStandardMaterial({color:'#4a3a28', roughness:0.6})
-  );
-  socket.scale.set(1,0.7,0.6);
-  g.add(socket);
+// ==== 眼睛 (虎目) ====
+[-1,1].forEach(function(s){
+  var eyeG = new G();
+  // 眼眶
+  var socket = new M(new SP(0.09, 8, 6), darkMat);
+  socket.scale.set(1,0.65,0.5);
+  eyeG.add(socket);
   // 眼白
-  var white = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), eyeWhite);
-  white.position.z = 0.04;
-  g.add(white);
-  // 瞳孔
-  var pupil = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), eyePupil);
+  eyeG.add(new M(new SP(0.06, 6, 6), eyeW)).position.z = 0.03;
+  // 瞳孔 (金色虹膜 + 黑瞳)
+  var iris = new M(new SP(0.035, 6, 6), gold);
+  iris.position.z = 0.05;
+  eyeG.add(iris);
+  var pupil = new M(new SP(0.02, 4, 4), eyeB);
   pupil.position.z = 0.07;
-  g.add(pupil);
-  g.position.set(side*0.2, 0.2, 0.26);
-  g.rotation.y = side*0.25;
-  return g;
+  eyeG.add(pupil);
+  eyeG.position.set(s*0.18, 0.17, 0.22);
+  eyeG.rotation.y = s*0.3;
+  headG.add(eyeG);
+});
+
+// 粗眉 (眉弓)
+[-1,1].forEach(function(s){
+  var brow = new M(new CY(0.03, 0.05, 0.2, 6), darkMat);
+  brow.position.set(s*0.16, 0.26, 0.15);
+  brow.rotation.z = -s*0.35;
+  brow.rotation.y = s*0.35;
+  headG.add(brow);
+});
+
+// ==== 独角 ====
+var hornG = new G();
+hornG.position.set(0, 0.35, 0.05);
+hornG.rotation.x = -0.35;
+
+// 主体圆锥
+var mainHorn = new M(new CN(0.05, 0.7, 14, 14), hornMat);
+mainHorn.castShadow = true;
+hornG.add(mainHorn);
+
+// 角基突
+for (var i=0; i<5; i++){
+  var ring = new M(new TO(0.05 - i*0.005, 0.014, 8, 14), gold);
+  ring.position.y = 0.08 + i*0.13;
+  hornG.add(ring);
 }
-headGroup.add(createEye(1));
-headGroup.add(createEye(-1));
 
-// 粗眉
-for (var s=-1; s<=1; s+=2){
-  var browGeo = new THREE.CylinderGeometry(0.04, 0.06, 0.25, 6);
-  var brow = new THREE.Mesh(browGeo, skinDark);
-  brow.position.set(s*0.2, 0.28, 0.18);
-  brow.rotation.z = -s*0.25; brow.rotation.y = s*0.3;
-  headGroup.add(brow);
-}
+headG.add(hornG);
 
-// ---- 耳朵 ----
-for (var s=-1; s<=1; s+=2){
-  var earGeo = new THREE.ConeGeometry(0.06, 0.18, 6, 6);
-  var ear = new THREE.Mesh(earGeo, skin);
-  ear.position.set(s*0.3, 0.2, -0.05);
-  ear.rotation.z = s*0.7; ear.rotation.x = 0.3;
-  headGroup.add(ear);
-}
+// ==== 虬髯 (长卷须) ====
+[-1,1].forEach(function(s){
+  var pts = [
+    new V3(s*0.18, -0.06, 0.3),
+    new V3(s*0.3, -0.02, 0.45),
+    new V3(s*0.45, -0.15, 0.3),
+    new V3(s*0.55, -0.35, 0.1),
+    new V3(s*0.5, -0.5, -0.05),
+  ];
+  var curve = new C2(pts);
+  var whisker = new M(new TU(curve, 24, 0.02, 8, false), maneMat);
+  whisker.castShadow = true;
+  headG.add(whisker);
+});
 
-xz.add(headGroup);
+// 下颚须
+[-1,1].forEach(function(s){
+  for (var i=0; i<3; i++){
+    var beard = new M(new CY(0.008, 0.016, 0.3 + i*0.08, 6), maneMat);
+    beard.position.set(s*0.08 + i*0.03*s, -0.22 - i*0.04, 0.3 + i*0.06);
+    beard.rotation.z = s*0.35;
+    beard.rotation.x = 0.5;
+    headG.add(beard);
+  }
+});
 
-// ---- 火焰鬃毛 (背后竖立) ----
-for (var i=0; i<9; i++){
-  var h = 0.3 + Math.random()*0.35;
-  var flameGeo = new THREE.ConeGeometry(0.04, h, 6, 4);
-  var flame = new THREE.Mesh(flameGeo, maneMat);
-  var fAngle = (i-4)*0.22;
+// ==== 耳朵 ====
+[-1,1].forEach(function(s){
+  var ear = new M(new CN(0.05, 0.15, 6, 4), bodyMat);
+  ear.position.set(s*0.26, 0.15, -0.05);
+  ear.rotation.z = s*0.8;
+  ear.rotation.x = 0.25;
+  headG.add(ear);
+});
+
+xz.add(headG);
+
+// ==== 火焰鬃毛 ====
+for (var i=0; i<10; i++){
+  var h = 0.25 + Math.random()*0.4;
+  var flame = new M(new CN(0.03, h, 5, 4), maneMat);
+  var fa = (i-4.5)*0.2;
   flame.position.set(
-    Math.sin(fAngle)*0.4,
-    1.25 + Math.random()*0.1,
-    -0.1 - Math.abs(i-4)*0.12
+    Math.sin(fa)*0.4,
+    1.1 + Math.random()*0.08,
+    -0.05 - Math.abs(i-4.5)*0.13
   );
-  flame.rotation.x = -0.2 + Math.random()*0.4;
-  flame.rotation.z = fAngle*0.6;
+  flame.rotation.x = -0.2 + Math.random()*0.35;
+  flame.rotation.z = fa*0.7;
   flame.castShadow = true;
   xz.add(flame);
 }
 
-// ---- 背脊鳞 ----
-for (var i=0; i<6; i++){
-  var spGeo = new THREE.ConeGeometry(0.04, 0.1, 5, 4);
-  var sp = new THREE.Mesh(spGeo, scaleMat);
-  sp.position.set(0, 1.15, -0.2-i*0.2);
-  sp.rotation.x = 0.4;
+// ==== 背脊 ====
+for (var i=0; i<8; i++){
+  var sp = new M(new CN(0.035, 0.08, 4, 4), scaleMat);
+  sp.position.set(0, 1.0, -0.15 - i*0.18);
+  sp.rotation.x = 0.5;
   xz.add(sp);
 }
 
-// ---- 前腿 (带利爪) ----
-function createFrontLeg(side){
-  var g = new THREE.Group();
-  var upper = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.5, 10), skin);
-  upper.position.y = 0.3; upper.castShadow = true;
-  g.add(upper);
-  var lower = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.4, 10), skinDark);
-  lower.position.y = 0.05; lower.castShadow = true;
-  g.add(lower);
-  // 利爪 - 4个趾
+// ==== 前腿 (利爪) ====
+[-1,1].forEach(function(s){
+  var legG = new G();
+  // 上臂
+  legG.add(new M(new CY(0.1, 0.12, 0.45, 10), bodyMat)).position.y = 0.26;
+  // 前臂
+  legG.add(new M(new CY(0.08, 0.1, 0.35, 10), darkMat)).position.y = 0.04;
+  // 爪指 (4个)
   for (var t=0; t<4; t++){
-    var clawGeo = new THREE.ConeGeometry(0.025, 0.1, 6, 4);
-    var claw = new THREE.Mesh(clawGeo, clawMat);
-    claw.position.set((t-1.5)*0.04, -0.15, 0.05);
-    claw.rotation.x = -0.3;
-    g.add(claw);
+    var c = new M(new CN(0.02, 0.08, 5, 4), clawMat);
+    c.position.set((t-1.5)*0.035, -0.12, 0.04);
+    c.rotation.x = -0.25;
+    legG.add(c);
   }
-  g.position.set(side*0.28, 0.3, 0.3);
-  return g;
-}
-xz.add(createFrontLeg(1));
-xz.add(createFrontLeg(-1));
+  legG.position.set(s*0.28, 0.2, 0.35);
+  xz.add(legG);
+});
 
-// ---- 后腿 (蹲姿 + 利爪) ----
-function createBackLeg(side){
-  var g = new THREE.Group();
+// ==== 后腿 (蹲姿利爪) ====
+[-1,1].forEach(function(s){
+  var legG = new G();
   // 大腿
-  var thigh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.18, 10, 8), skin
-  );
-  thigh.scale.set(0.7,0.7,0.9);
-  thigh.position.set(side*0.1, 0.55, 0.05); thigh.castShadow = true;
-  g.add(thigh);
+  var thigh = new M(new SP(0.16, 10, 8), bodyMat);
+  thigh.scale.set(0.7,0.6,0.85);
+  thigh.position.set(s*0.1, 0.45, 0);
+  thigh.castShadow = true;
+  legG.add(thigh);
   // 小腿
-  var leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.35, 10), skin);
-  leg.position.set(side*0.3, 0.2, -0.1);
-  leg.rotation.z = side*0.35; leg.castShadow = true;
-  g.add(leg);
-  // 利爪
+  var shank = new M(new CY(0.1, 0.12, 0.3, 10), darkMat);
+  shank.position.set(s*0.25, 0.15, -0.05);
+  shank.rotation.z = s*0.35;
+  shank.castShadow = true;
+  legG.add(shank);
+  // 爪指
   for (var t=0; t<4; t++){
-    var claw = new THREE.Mesh(
-      new THREE.ConeGeometry(0.025, 0.1, 6, 4), clawMat
-    );
-    claw.position.set(side*0.4 + (t-1.5)*0.04, -0.02, -0.08);
-    claw.rotation.x = -0.2;
-    g.add(claw);
+    var c = new M(new CN(0.022, 0.09, 5, 4), clawMat);
+    c.position.set(s*0.35 + (t-1.5)*0.035, -0.04, -0.02);
+    c.rotation.x = -0.2;
+    legG.add(c);
   }
-  g.position.set(0, 0.1, -0.7);
-  return g;
-}
-xz.add(createBackLeg(1));
-xz.add(createBackLeg(-1));
+  legG.position.set(0, 0.05, -0.65);
+  xz.add(legG);
+});
 
-// ---- 尾巴 ----
+// ==== 尾巴 ====
 var tailPts = [
-  new THREE.Vector3(0, 0.8, -0.85),
-  new THREE.Vector3(0, 1.6, -1.0),
-  new THREE.Vector3(0.1, 2.2, -0.5),
-  new THREE.Vector3(-0.1, 2.6, -0.1),
+  new V3(0, 0.6, -0.8),
+  new V3(0, 1.4, -1.0),
+  new V3(0.15, 2.0, -0.5),
+  new V3(-0.05, 2.5, -0.05),
 ];
-var tailCurve = new THREE.CatmullRomCurve3(tailPts);
-var tail = new THREE.Mesh(
-  new THREE.TubeGeometry(tailCurve, 24, 0.05, 10, false), skin
-);
-tail.castShadow = true; xz.add(tail);
+var tailCurve = new C2(tailPts);
+var tail = new M(new TU(tailCurve, 28, 0.04, 10, false), bodyMat);
+tail.castShadow = true;
+xz.add(tail);
 
-// 尾端毛球
-var tailTuft = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), maneMat);
-tailTuft.position.set(-0.1, 2.6, -0.1); xz.add(tailTuft);
+var tuftGeo = new SP(0.1, 8, 6);
+tuftGeo.scale(1, 1.2, 1);
+var tuft = new M(tuftGeo, maneMat);
+tuft.position.set(-0.05, 2.5, -0.05);
+xz.add(tuft);
+
+// 尾火焰毛
+for (var i=0; i<5; i++){
+  var tf = new M(new CN(0.03, 0.12, 4, 4), maneMat);
+  var a = (i/5)*Math.PI*2;
+  tf.position.set(-0.05+Math.cos(a)*0.08, 2.5+Math.sin(a)*0.06, -0.05+Math.sin(a)*0.08);
+  tf.rotation.x = a*0.5;
+  tf.rotation.z = a*0.5;
+  xz.add(tf);
+}
+
+// 项圈铃铛
+var collar = new M(new TO(0.4, 0.03, 8, 24), gold);
+collar.position.y = 0.85;
+collar.position.z = 0.38;
+collar.rotation.x = Math.PI/2;
+xz.add(collar);
+
+var bell = new M(new SP(0.07, 8, 6), gold);
+bell.scale.set(1, 1.3, 1);
+bell.position.set(0, 0.52, 0.72);
+xz.add(bell);
 
 xz.position.set(0, 0.35, 0);
 scene.add(xz);
 
-// 铭牌
-var plaque = new THREE.Mesh(
-  new THREE.BoxGeometry(1.2, 0.12, 0.04),
-  goldAccent
-);
-plaque.position.set(0, 0.03, 1.1); plaque.castShadow = true; scene.add(plaque);
+// ==== 铭牌 ====
+var plaque = new M(new BX(1.3, 0.12, 0.04), gold);
+plaque.position.set(0, 0.04, 1.1);
+plaque.castShadow = true;
+scene.add(plaque);
 
-// 粒子
-var ptsGeo = new THREE.BufferGeometry();
-var ptsPos = new Float32Array(60*3);
-for(var i=0;i<60;i++){
-  var a = (i/60)*Math.PI*2;
-  var r = 1.8+Math.sin(i*0.7)*0.3;
-  ptsPos[i*3]=Math.cos(a)*r; ptsPos[i*3+1]=1.5+Math.cos(a*2.5)*0.5; ptsPos[i*3+2]=Math.sin(a)*r;
+// ==== 粒子光环 ====
+var ptsArr = [];
+for (var i=0; i<70; i++){
+  var a = (i/70)*Math.PI*2;
+  var r = 1.6 + Math.sin(i*0.6)*0.2;
+  ptsArr.push(Math.cos(a)*r, 1.4+Math.cos(a*3)*0.4, Math.sin(a)*r);
 }
-ptsGeo.setAttribute('position',new THREE.BufferAttribute(ptsPos,3));
-var pts = new THREE.Points(ptsGeo, new THREE.PointsMaterial({color:'#ffd700',size:0.03,blending:THREE.AdditiveBlending,depthWrite:false}));
+var ptsGeo = new B();
+ptsGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ptsArr), 3));
+var pts = new M(ptsGeo, new THREE.PointsMaterial({color:'#ffd700', size:0.03, blending:THREE.AdditiveBlending, depthWrite:false}));
 scene.add(pts);
 
+// ==== 底座前方烛台 ====
+[0.7,-0.7].forEach(function(x){
+  var stand = new M(new CY(0.04, 0.06, 0.3, 8), gold);
+  stand.position.set(x, 0.42, 0.65);
+  stand.castShadow = true;
+  scene.add(stand);
+  // 火焰
+  var fl = new M(new SP(0.04, 6, 6), new MB({color:'#ff8800', roughness:0.2, emissive:'#ff4400', emissiveIntensity:0.6}));
+  fl.position.set(x, 0.6, 0.65);
+  scene.add(fl);
+});
+
+// ==== 动画 ====
 function animate(){
   requestAnimationFrame(animate);
   pts.rotation.y += 0.003;
   controls.update();
-  renderer.render(scene,camera);
+  renderer.render(scene, camera);
 }
 animate();
-window.addEventListener('resize',function(){
-  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
+
+window.addEventListener('resize', function(){
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
 });
 </script>
 </body>
